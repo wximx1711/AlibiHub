@@ -11,6 +11,9 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_AI_PROXY_URL": "https://alibihub-api.onrender.com"
       }
     },
     "production": {}
@@ -19,4 +22,3 @@
     "production": {}
   }
 }
-

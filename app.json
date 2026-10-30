@@ -23,7 +23,8 @@
       "package": "com.alibihub.app",
       "permissions": [
         "VIBRATE",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "web": {
@@ -37,8 +38,20 @@
           "color": "#8B5CF6"
         }
       ],
-      ["expo-audio", { "microphonePermission": false, "recordAudioAndroid": false }],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
       "expo-asset"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "9cef7554-3901-4cc2-b480-d4b3826d38e9"
+      }
+    },
+    "owner": "minhpicasso"
   }
 }

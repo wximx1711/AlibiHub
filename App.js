@@ -34,6 +34,7 @@ import {
   saveScenario,
   deleteScenario,
   toggleScenarioFavorite,
+  toggleScenarioPin,
   addCallHistoryEntry,
   clearCallHistory,
   saveSettings,
@@ -278,6 +279,14 @@ function AppContent() {
     }
   };
 
+  const handleTogglePin = async (scenarioId) => {
+    try {
+      const updated = await toggleScenarioPin(scenarioId);
+      setScenarios(prev => prev.map(item => item.id === scenarioId ? updated : item));
+      setSelectedScenario(updated);
+    } catch (err) { Alert.alert('Không thể ghim', err.message); }
+  };
+
   const handleDeleteScenario = async (scenarioId) => {
     try {
       await deleteScenario(scenarioId);
@@ -511,6 +520,7 @@ function AppContent() {
             scenario={selectedScenario}
             onLaunch={handleLaunchScenarioFromDetail}
             onCustomize={handleCustomizeScenario}
+            onTogglePin={handleTogglePin}
             onDelete={handleDeleteScenario}
             onBack={() => setActiveModalScreen(null)}
           />

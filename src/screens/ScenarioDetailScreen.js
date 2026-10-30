@@ -16,6 +16,7 @@ export default function ScenarioDetailScreen({
   scenario,
   onLaunch,
   onCustomize,
+  onTogglePin,
   onDelete,
   onBack,
 }) {
@@ -153,6 +154,9 @@ export default function ScenarioDetailScreen({
 
         {/* Primary Launch & Customize Actions */}
         <View style={styles.actionsWrap}>
+          <TouchableOpacity style={styles.customizeBtn} onPress={() => onTogglePin(scenario.id)}>
+            <Text style={styles.customizeBtnText}>{scenario.isPinned ? 'Bỏ ghim khỏi Trang chủ' : 'Ghim lên Trang chủ'}</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.launchBtn}
             onPress={() => onLaunch(scenario)}
@@ -172,7 +176,7 @@ export default function ScenarioDetailScreen({
           {scenario.isCustom && onDelete ? (
             <TouchableOpacity
               style={styles.deleteBtn}
-              onPress={() => onDelete(scenario.id)}
+              onPress={async () => { try { await onDelete(scenario.id); } catch (err) { Alert.alert('Không thể xóa', err.message); } }}
               activeOpacity={0.8}
             >
               <Text style={styles.deleteBtnText}>🗑️ Xóa kịch bản này khỏi Vault</Text>

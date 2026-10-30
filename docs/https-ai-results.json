@@ -1,0 +1,57 @@
+{
+  "url": "https://alibihub-api.onrender.com",
+  "timestamp": "2026-10-30T14:52:16.850Z",
+  "messages": [
+    {
+      "success": true,
+      "text": "Cảm ơn anh/chị đã có nhã ý mời tôi đi ăn. Tuy nhiên, hôm nay tôi có chút việc cá nhân cần nghỉ ngơi để đảm bảo sức khỏe cho công việc ngày mai, nên xin phép được hẹn anh/chị vào một dịp khác gần nhất nhé.",
+      "style": "Professional",
+      "model": "gemini-3.1-flash-lite"
+    },
+    {
+      "success": true,
+      "text": "Cảm ơn bạn nhiều vì đã có lời mời nha, nhưng hôm nay mình hơi đuối sức nên muốn dành thời gian nghỉ ngơi sớm một chút. Hẹn bạn một dịp khác gần nhất mình đi cafe bù nhé!",
+      "style": "Friendly",
+      "model": "gemini-3.1-flash-lite"
+    },
+    {
+      "success": true,
+      "text": "Tiếc quá, hôm nay 'pin' của mình đang ở mức báo động đỏ rồi, nếu cố đi ăn chắc mình sẽ ngủ gục trên bàn mất! Hẹn mọi người dịp khác mình sẽ 'tăng động' bù nhé.",
+      "style": "Funny",
+      "model": "gemini-3.1-flash-lite"
+    },
+    {
+      "success": true,
+      "text": "Cảm ơn bạn đã mời nhé, nhưng hôm nay mình hơi mệt nên muốn dành thời gian nghỉ ngơi tại nhà. Hẹn bạn dịp khác mình đi ăn nhé!",
+      "style": "Short & Direct",
+      "model": "gemini-3.1-flash-lite"
+    },
+    {
+      "success": true,
+      "text": "Cảm ơn bạn đã mời mình nhé, nhưng hôm nay mình hơi mệt nên muốn dành thời gian nghỉ ngơi sớm một chút. Tiếc quá không tham gia cùng mọi người được, hẹn dịp khác mình bù nhé!",
+      "style": "Polite Refusal",
+      "model": "gemini-3.1-flash-lite"
+    }
+  ],
+  "scenario": {
+    "scenarioTitle": "Bạn thân gọi nhờ việc gấp",
+    "category": "Bạn bè",
+    "caller": {
+      "name": "Minh Anh",
+      "role": "Bạn thân",
+      "phoneNumber": "0912 345 678",
+      "avatarUrl": ""
+    },
+    "delaySeconds": 10,
+    "ambientSound": "street",
+    "dialogue": [
+      "Alo, cậu đang ở đâu đấy? Tớ đang gặp chút chuyện khó xử, cậu giúp tớ một tay được không?",
+      "Tớ đang đi cafe với mấy đứa bạn, có chuyện gì mà gấp vậy?",
+      "Nhà tớ tự nhiên bị hỏng đường ống nước, nước tràn lênh láng rồi, tớ không xoay xở kịp. Cậu qua hỗ trợ tớ khóa van nước được không?",
+      "Ôi thế à, được rồi, tớ về ngay đây, đợi tớ một lát nhé."
+    ],
+    "suggestedMessage": "Xin lỗi mọi người nhé, nhà bạn mình có việc khẩn cấp cần hỗ trợ ngay, mình phải về trước đây. Hẹn mọi người dịp khác nhé!",
+    "isAiGenerated": true,
+    "model": "gemini-3.1-flash-lite"
+  }
+}

@@ -1,45 +1,45 @@
 {
-  "timestamp": "2026-10-30T14:11:22.398Z",
+  "timestamp": "2026-10-30T14:36:39.848Z",
   "transport": "local HTTP proxy to real Gemini; production HTTPS and physical device remain untested",
   "messages": [
     {
       "success": true,
-      "text": "Cảm ơn bạn đã mời mình đi ăn tối nhé, nhưng hôm nay mình có chút việc cá nhân đột xuất cần xử lý nên xin phép không tham gia cùng mọi người được. Chúc mọi người có bữa tối thật vui vẻ và thoải mái nhé!",
+      "text": "Cảm ơn anh/chị đã có lời mời, nhưng tối nay tôi có chút việc cá nhân đột xuất nên xin phép không tham gia cùng mọi người được. Rất mong anh/chị thông cảm và hẹn mọi người vào dịp gần nhất nhé!",
       "style": "Professional",
       "model": "gemini-3.1-flash-lite",
-      "latencyMs": 1457
+      "latencyMs": 1102
     },
     {
       "success": true,
-      "text": "Cảm ơn [Tên đồng nghiệp] đã rủ mình đi ăn tối nhé, nhưng hôm nay mình hơi mệt nên chắc xin phép về nghỉ sớm hồi sức chút. Hẹn mọi người dịp khác mình đi cùng nhé!",
+      "text": "Cảm ơn [Tên đồng nghiệp] đã rủ mình nhé, nhưng hôm nay tự nhiên mình thấy hơi mệt trong người nên muốn về nghỉ ngơi sớm một chút. Hẹn dịp khác mình mời lại bạn sau nhé, chúc mọi người ăn tối vui vẻ nha!",
       "style": "Friendly",
       "model": "gemini-3.1-flash-lite",
-      "latencyMs": 5460
+      "latencyMs": 968
     },
     {
       "success": true,
-      "text": "Tiếc quá, hôm nay 'pin' của mình báo đỏ, chắc phải về sạc gấp không là mai lên công ty thành 'zombie' mất. Các bạn đi ăn ngon miệng nhé, bữa sau mình xin bù kèo khác hoành tráng hơn nha!",
+      "text": "Hôm nay pin năng lượng của mình chạm đáy rồi, nếu đi ăn tối chắc mình chỉ ngồi làm 'bình hoa di động' mất. Để hôm khác mình bù kèo hoành tráng hơn nhé, tối nay cho mình xin phép được 'cách ly' với thế giới để sạc lại pin nha!",
       "style": "Funny",
       "model": "gemini-3.1-flash-lite",
-      "latencyMs": 8461
+      "latencyMs": 985
     },
     {
       "success": true,
-      "text": "Cảm ơn bạn đã mời nhé, nhưng tối nay mình hơi mệt nên xin phép không tham gia được. Hẹn mọi người dịp khác nhé!",
+      "text": "Cảm ơn bạn đã mời nhé, nhưng tối nay mình hơi mệt nên xin phép không tham gia được. Hẹn mọi người dịp khác nha!",
       "style": "Short & Direct",
       "model": "gemini-3.1-flash-lite",
-      "latencyMs": 811
+      "latencyMs": 751
     },
     {
       "success": true,
-      "text": "Cảm ơn [Tên đồng nghiệp] đã mời mình nhé, nhưng tối nay mình hơi mệt nên xin phép không tham gia được. Tiếc quá, để hôm khác khỏe hơn mình mời lại cà phê hoặc ăn trưa bù nhé!",
+      "text": "Cảm ơn [Tên đồng nghiệp] đã có lời mời nhé, nhưng tối nay mình hơi mệt nên chắc không tham gia cùng mọi người được rồi. Tiếc quá, hẹn mọi người dịp gần nhất mình sẽ đi cùng nhé!",
       "style": "Polite Refusal",
       "model": "gemini-3.1-flash-lite",
-      "latencyMs": 14975
+      "latencyMs": 955
     }
   ],
   "scenario": {
-    "id": "sc_ai_1793369515242",
+    "id": "sc_ai_1793371006462",
     "title": "Bản đã chỉnh sửa: về nghỉ",
     "description": "Tôi muốn rời buổi gặp bạn bè sớm để về nghỉ vì mệt.",
     "category": "Bạn bè",
@@ -49,20 +49,20 @@
     "callerPhone": "0912 345 678",
     "callerAvatar": "",
     "delaySeconds": 0,
-    "ambientSound": "none",
+    "ambientSound": "street",
     "dialogue": [
-      "Alo, cậu đang ở đâu đấy, vẫn còn tụ tập với hội bạn à?",
-      "Ừ tớ đang ngồi với mọi người, có chuyện gì không cậu?",
-      "Tớ thấy cậu hơi mệt từ chiều rồi, về nghỉ sớm đi không mai lại ốm đấy, tớ qua đón nhé?",
-      "Ừ, cảm ơn cậu đã nhắc, tớ cũng đang định xin phép về đây, tớ ra ngay nhé."
+      "Alo, cậu đang ở đâu đấy? Tớ vừa về đến nhà thấy có chút việc gấp cần cậu hỗ trợ ngay được không?",
+      "Ơ, tớ đang đi cà phê với mấy đứa bạn, có chuyện gì mà gấp thế cậu?",
+      "Nhà tớ tự nhiên bị chập điện, tớ lo quá không biết xử lý sao, cậu qua giúp tớ một tay được không?",
+      "Thế à, được rồi, tớ về ngay đây, đợi tớ một chút nhé."
     ],
-    "suggestedMessage": "Mọi người ơi, bạn mình vừa gọi báo có việc gấp cần mình về giải quyết, mình xin phép về trước nhé, chúc mọi người chơi vui vẻ!",
+    "suggestedMessage": "Xin lỗi mọi người nhé, nhà tớ có chút việc gấp đột xuất nên tớ phải về trước đây, hẹn mọi người hôm khác tụ tập bù nhé!",
     "isFavorite": false,
     "isPinned": false,
     "isAiGenerated": true,
-    "createdAt": "2026-10-30T14:11:55.242Z",
+    "createdAt": "2026-10-30T14:36:46.462Z",
     "isCustom": true,
-    "updatedAt": "2026-10-30T14:11:55.243Z"
+    "updatedAt": "2026-10-30T14:36:46.462Z"
   },
   "workflow": "PASS: generate, edit, save, reload service, FE1 dispatch (native audio/UI not covered)"
 }

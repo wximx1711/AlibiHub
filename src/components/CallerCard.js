@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { colors, typography, spacing, borderRadius } from '../theme/colors';
 
 export default function CallerCard({ caller, onSelect, onEdit, onDelete, isSelected }) {
@@ -13,9 +13,9 @@ export default function CallerCard({ caller, onSelect, onEdit, onDelete, isSelec
       activeOpacity={0.8}
     >
       <View style={[styles.avatarCircle, { backgroundColor: caller.avatarBg || colors.accent }]}>
-        <Text style={styles.avatarInitials}>
+        {caller.avatarUrl ? <Image source={{ uri: caller.avatarUrl }} style={{ width: 48, height: 48, borderRadius: 24 }} /> : <Text style={styles.avatarInitials}>
           {caller.initials || caller.name?.substring(0, 2)?.toUpperCase() || 'AL'}
-        </Text>
+        </Text>}
       </View>
 
       <View style={styles.infoWrap}>

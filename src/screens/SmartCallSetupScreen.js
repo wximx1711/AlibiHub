@@ -98,7 +98,7 @@ export default function SmartCallSetupScreen({
 
     let effectiveDelay;
     try {
-      effectiveDelay = delay(isCustomDelay ? customDelayInput : delaySeconds);
+      effectiveDelay = clockTime.trim() ? 0 : delay(isCustomDelay ? customDelayInput : delaySeconds);
       if (clockTime.trim()) {
         if (!/^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(clockTime.trim())) throw new Error('Giờ hẹn cần có dạng HH:mm, ví dụ 21:30.');
         const [h,m] = clockTime.split(':').map(Number), target = new Date(); target.setHours(h,m,0,0);
@@ -110,6 +110,7 @@ export default function SmartCallSetupScreen({
     } catch (err) { Alert.alert('Dữ liệu chưa hợp lệ', err.message); return null; }
 
     return {
+      ...(initialConfig || {}),
       caller: {
         name: callerName.trim(),
         avatarUrl,

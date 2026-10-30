@@ -32,7 +32,7 @@ export default function QuickEscapeButton({ onPress, isScheduled, remainingSecon
           <Text style={styles.countdownText}>
             Đổ chuông sau: <Text style={styles.countdownHighlight}>{remainingSeconds}s</Text>
           </Text>
-          <Text style={styles.scheduledSub}>Ứng dụng sẽ kích hoạt giao diện cuộc gọi mô phỏng</Text>
+          <Text style={styles.scheduledSub}>Giữ app mở để đổ chuông; ở nền, chạm thông báo để nhận cuộc gọi.</Text>
         </View>
         <TouchableOpacity style={styles.cancelButton} onPress={onCancelSchedule} activeOpacity={0.8}>
           <Text style={styles.cancelButtonText}>Hủy hẹn giờ</Text>

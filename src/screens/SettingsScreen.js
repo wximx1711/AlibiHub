@@ -49,20 +49,22 @@ export default function SettingsScreen({
     catch (err) { Alert.alert('Không thể lưu', err.message); }
   };
 
-  const handleToggleVibration = (val) => {
-    setVibrationEnabled(val);
-    onSaveSettings({ vibrationEnabled: val });
+  const handleToggleVibration = async (val) => {
+    try { await onSaveSettings({ vibrationEnabled: val }); setVibrationEnabled(val); }
+    catch (err) { Alert.alert('Không thể lưu', err.message); }
   };
 
-  const handleChangeRingtone = (type) => {
-    setRingtoneType(type);
-    onSaveSettings({ ringtoneType: type });
+  const handleChangeRingtone = async (type) => {
+    try { await onSaveSettings({ ringtoneType: type }); setRingtoneType(type); }
+    catch (err) { Alert.alert('Không thể lưu', err.message); }
   };
 
   const handleConfirmReset = async () => {
-    await onResetFactoryData();
-    setResetModalVisible(false);
-    Alert.alert('Thành công', 'Đã khôi phục toàn bộ dữ liệu mẫu ban đầu.');
+    try {
+      await onResetFactoryData();
+      setResetModalVisible(false);
+      Alert.alert('Thành công', 'Đã khôi phục toàn bộ dữ liệu mẫu ban đầu.');
+    } catch (err) { Alert.alert('Không thể khôi phục', err.message); }
   };
 
   return (

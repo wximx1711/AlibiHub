@@ -1,6 +1,18 @@
 import { Alert, Platform, Vibration } from 'react-native';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import * as Speech from 'expo-speech';
+import { Asset } from 'expo-asset';
+function player(source) {
+  if (Platform.OS !== 'web') return createAudioPlayer(source);
+  const media = new Audio(Asset.fromModule(source).uri);
+  return {
+    set loop(value) { media.loop = value; },
+    set volume(value) { media.volume = value; },
+    play() { media.play().catch(err => { if (err.name !== 'AbortError') Alert.alert('Âm thanh', 'Trình duyệt chưa cho phép phát âm thanh.'); }); },
+    pause() { media.pause(); },
+    remove() { media.pause(); media.removeAttribute('src'); media.load(); },
+  };
+}
 const sounds = {
   classic: require('../../assets/audio/classic.wav'), digital: require('../../assets/audio/digital.wav'),
   office: require('../../assets/audio/office.wav'), cafe: require('../../assets/audio/cafe.wav'),
@@ -24,7 +36,7 @@ class AudioSimulationService {
     const generation = this.generation;
     this.configure().then(() => {
       if (generation !== this.generation) return;
-      this.ringtone = createAudioPlayer(sounds[type] || sounds.classic);
+      this.ringtone = player(sounds[type] || sounds.classic);
       this.ringtone.loop = true; this.ringtone.volume = 0.8; this.ringtone.play();
     }).catch(() => Alert.alert('Âm thanh', 'Không thể phát nhạc chuông. Kiểm tra âm lượng thiết bị.'));
   }
@@ -35,7 +47,7 @@ class AudioSimulationService {
   startAmbientSound(type, volume = 0.25) {
     this.stopAmbientSound(); this.ambientVolume = volume;
     if (!sounds[type] || type === 'classic' || type === 'digital') return;
-    try { this.ambient = createAudioPlayer(sounds[type]); this.ambient.loop = true; this.setAmbientVolume(volume); this.ambient.play(); }
+    try { this.ambient = player(sounds[type]); this.ambient.loop = true; this.setAmbientVolume(volume); this.ambient.play(); }
     catch { Alert.alert('Âm thanh', 'Không thể phát âm nền trên thiết bị này.'); }
   }
   setAmbientVolume(volume) {

@@ -3,7 +3,7 @@
  * Uses AsyncStorage for reliable offline persistence across app restarts.
  */
 
-import { text, phone, delay, dialogue, AMBIENTS } from '../utils/validation';
+import { text, phone, delay, dialogue, AMBIENTS, proxyUrl } from '../utils/validation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DEFAULT_CALLERS } from '../data/defaultCallers';
 import { DEFAULT_SCENARIOS } from '../data/defaultScenarios';
@@ -268,14 +268,21 @@ export async function getSettings() {
   try {
     const json = await AsyncStorage.getItem(STORAGE_KEYS.SETTINGS);
     if (!json) return DEFAULT_SETTINGS;
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(json) };
+    const parsed = JSON.parse(json);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Cài đặt đã lưu không hợp lệ.');
+    return { ...DEFAULT_SETTINGS, ...parsed };
   } catch (error) {
     console.error('Failed to get settings:', error);
-    return DEFAULT_SETTINGS;
+    throw error;
   }
 }
 
 async function saveSettingsImpl(newSettings) {
+  for (const key of ['voiceVolume', 'ambientVolume']) {
+    if (key in newSettings && (typeof newSettings[key] !== 'number' || !Number.isFinite(newSettings[key]) || newSettings[key] < 0 || newSettings[key] > 1)) throw new Error('Âm lượng phải từ 0 đến 1.');
+  }
+  if ('proxyUrl' in newSettings && newSettings.proxyUrl) proxyUrl(newSettings.proxyUrl);
+  if ('ringtoneType' in newSettings && !['classic', 'digital'].includes(newSettings.ringtoneType)) throw new Error('Nhạc chuông không hợp lệ.');
   try {
     const current = await getSettings();
     const merged = { ...current, ...newSettings };

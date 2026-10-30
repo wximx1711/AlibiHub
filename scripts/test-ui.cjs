@@ -31,11 +31,32 @@ async function main(){
     await page.getByText('Kho Vault',{exact:true}).click();
     await page.getByText(/Lịch sử \(/).click();
     assert.ok((await page.locator('body').innerText()).includes('Cuộc gọi của tôi'));
+    await page.getByText(/Người gọi \(/).click();
+    await page.getByText('+ Thêm người gọi',{exact:true}).click();
+    await page.getByPlaceholder('VD: Sếp Hoàng, Mẹ, Bác sĩ Hùng...').fill('Người gọi kiểm thử');
+    await page.getByPlaceholder('VD: 0903 888 999').fill('0912345678');
+    await page.getByText('Lưu hồ sơ',{exact:true}).click();
+    await page.getByText('Người gọi kiểm thử',{exact:true}).waitFor();
+    await page.getByText('Người gọi kiểm thử',{exact:true}).click();
+    await page.getByPlaceholder('VD: Sếp Hoàng, Mẹ, Bác sĩ Hùng...').fill('Người gọi đã sửa');
+    await page.getByText('Lưu hồ sơ',{exact:true}).click();
+    await page.getByText('Người gọi đã sửa',{exact:true}).waitFor();
+    await page.getByText('Xóa',{exact:true}).first().click();
+    await page.getByText('Xác nhận xóa',{exact:true}).last().click();
+    await page.getByText('Người gọi đã sửa',{exact:true}).waitFor({state:'hidden'});
+    await page.getByText('Gọi mô phỏng',{exact:true}).click();
+    await page.getByText('5 phút',{exact:true}).click();
+    await page.getByText(/HẸN GIỜ ĐỔ CHUÔNG/).click();
+    await page.getByText('ĐANG HẸN GIỜ CUỘC GỌI',{exact:true}).waitFor();
+    await page.reload();
+    await page.getByText('ĐANG HẸN GIỜ CUỘC GỌI',{exact:true}).waitFor();
+    await page.getByText('Hủy hẹn giờ',{exact:true}).click();
+    await page.getByText('QUICK ESCAPE (1-CHẠM)',{exact:true}).waitFor();
     await page.reload();await page.getByText('AlibiHub',{exact:true}).waitFor();
     await page.getByText('Kho Vault',{exact:true}).click();await page.getByText(/Lịch sử \(/).click();
     assert.ok((await page.locator('body').innerText()).includes('Cuộc gọi của tôi'));
     assert.deepEqual(errors,[]);
-    console.log('PASS browser: search, setup, incoming, accept, mute, end, history, restart; no uncaught JS errors');
+    console.log('PASS browser: search, setup, incoming, accept, mute, end, history, caller CRUD, schedule restore/cancel, restart; no uncaught JS errors');
   }catch(err){console.log('Browser errors:',errors);console.log((await page.locator('body').innerText()).slice(-2000));await page.screenshot({path:'docs/screenshots/failure.png'});throw err;}finally{await browser.close();await new Promise(r=>server.close(r));}
 }
 main().catch(err=>{console.error(err);process.exitCode=1;server.close();});

@@ -161,7 +161,7 @@ export default function TrustedNetworkScreen({
 <TouchableOpacity onPress={() => Linking.openURL('tel:' + contact.phone.replace(/[^+0-9]/g, '')).catch(() => Alert.alert('Không thể gọi', 'Thiết bị chưa có ứng dụng gọi điện.'))}><Text style={styles.contactStatus}>Gọi</Text></TouchableOpacity>
               <TouchableOpacity
                 style={styles.deleteContactBtn}
-                onPress={() => onDeleteContact(contact.id)}
+                onPress={async () => { try { await onDeleteContact(contact.id); } catch (err) { Alert.alert('Không thể xóa', err.message); } }}
               >
                 <Text style={styles.deleteContactText}>Xóa</Text>
               </TouchableOpacity>
