@@ -1,0 +1,8 @@
+**
+!server/
+!server/index.js
+!server/geminiProxy.js
+!server/scenarioSchema.json
+!src/
+!src/utils/
+!src/utils/validation.js

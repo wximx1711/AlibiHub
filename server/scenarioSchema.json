@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "required": ["scenarioTitle", "category", "caller", "delaySeconds", "ambientSound", "dialogue", "suggestedMessage"],
+  "properties": {
+    "scenarioTitle": {"type":"string"},
+    "category": {"type":"string","enum":["Công sở","Gia đình","Bạn bè","Hẹn hò / Tiệc tùng","Khẩn cấp"]},
+    "caller": {"type":"object","required":["name","role","phoneNumber"],"properties":{"name":{"type":"string"},"role":{"type":"string"},"phoneNumber":{"type":"string"}}},
+    "delaySeconds": {"type":"integer","enum":[0,10,30,60,300]},
+    "ambientSound": {"type":"string","enum":["none","office","cafe","street","hospital"]},
+    "dialogue": {"type":"array","minItems":3,"maxItems":5,"items":{"type":"string"}},
+    "suggestedMessage": {"type":"string"}
+  }
+}

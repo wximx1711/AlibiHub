@@ -1,0 +1,68 @@
+{
+  "timestamp": "2026-10-30T14:11:22.398Z",
+  "transport": "local HTTP proxy to real Gemini; production HTTPS and physical device remain untested",
+  "messages": [
+    {
+      "success": true,
+      "text": "Cảm ơn bạn đã mời mình đi ăn tối nhé, nhưng hôm nay mình có chút việc cá nhân đột xuất cần xử lý nên xin phép không tham gia cùng mọi người được. Chúc mọi người có bữa tối thật vui vẻ và thoải mái nhé!",
+      "style": "Professional",
+      "model": "gemini-3.1-flash-lite",
+      "latencyMs": 1457
+    },
+    {
+      "success": true,
+      "text": "Cảm ơn [Tên đồng nghiệp] đã rủ mình đi ăn tối nhé, nhưng hôm nay mình hơi mệt nên chắc xin phép về nghỉ sớm hồi sức chút. Hẹn mọi người dịp khác mình đi cùng nhé!",
+      "style": "Friendly",
+      "model": "gemini-3.1-flash-lite",
+      "latencyMs": 5460
+    },
+    {
+      "success": true,
+      "text": "Tiếc quá, hôm nay 'pin' của mình báo đỏ, chắc phải về sạc gấp không là mai lên công ty thành 'zombie' mất. Các bạn đi ăn ngon miệng nhé, bữa sau mình xin bù kèo khác hoành tráng hơn nha!",
+      "style": "Funny",
+      "model": "gemini-3.1-flash-lite",
+      "latencyMs": 8461
+    },
+    {
+      "success": true,
+      "text": "Cảm ơn bạn đã mời nhé, nhưng tối nay mình hơi mệt nên xin phép không tham gia được. Hẹn mọi người dịp khác nhé!",
+      "style": "Short & Direct",
+      "model": "gemini-3.1-flash-lite",
+      "latencyMs": 811
+    },
+    {
+      "success": true,
+      "text": "Cảm ơn [Tên đồng nghiệp] đã mời mình nhé, nhưng tối nay mình hơi mệt nên xin phép không tham gia được. Tiếc quá, để hôm khác khỏe hơn mình mời lại cà phê hoặc ăn trưa bù nhé!",
+      "style": "Polite Refusal",
+      "model": "gemini-3.1-flash-lite",
+      "latencyMs": 14975
+    }
+  ],
+  "scenario": {
+    "id": "sc_ai_1793369515242",
+    "title": "Bản đã chỉnh sửa: về nghỉ",
+    "description": "Tôi muốn rời buổi gặp bạn bè sớm để về nghỉ vì mệt.",
+    "category": "Bạn bè",
+    "categoryTag": "tagFriends",
+    "callerName": "Minh Anh",
+    "callerRole": "Bạn thân",
+    "callerPhone": "0912 345 678",
+    "callerAvatar": "",
+    "delaySeconds": 0,
+    "ambientSound": "none",
+    "dialogue": [
+      "Alo, cậu đang ở đâu đấy, vẫn còn tụ tập với hội bạn à?",
+      "Ừ tớ đang ngồi với mọi người, có chuyện gì không cậu?",
+      "Tớ thấy cậu hơi mệt từ chiều rồi, về nghỉ sớm đi không mai lại ốm đấy, tớ qua đón nhé?",
+      "Ừ, cảm ơn cậu đã nhắc, tớ cũng đang định xin phép về đây, tớ ra ngay nhé."
+    ],
+    "suggestedMessage": "Mọi người ơi, bạn mình vừa gọi báo có việc gấp cần mình về giải quyết, mình xin phép về trước nhé, chúc mọi người chơi vui vẻ!",
+    "isFavorite": false,
+    "isPinned": false,
+    "isAiGenerated": true,
+    "createdAt": "2026-10-30T14:11:55.242Z",
+    "isCustom": true,
+    "updatedAt": "2026-10-30T14:11:55.243Z"
+  },
+  "workflow": "PASS: generate, edit, save, reload service, FE1 dispatch (native audio/UI not covered)"
+}

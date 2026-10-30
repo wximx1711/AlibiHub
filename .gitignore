@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Expo & Local Artifacts
+.expo/
+dist/
+web-build/
+*.log
+
+# Sensitive Environment Secrets (NEVER COMMIT)
+.env
+.env.local
+.env.*.local
+.env.*
+!.env.example
+server/.env
+server/.env.*
+!server/.env.example
+
+# Native builds
+android/
+ios/
+
+# EAS / OS
+.eas/
+.DS_Store
+Thumbs.db
+.vscode/
+*.docx
+docx_text.txt
+docs/screenshots/failure.png
+test-results/
+playwright-report/
+
