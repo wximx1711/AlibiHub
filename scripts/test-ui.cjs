@@ -27,7 +27,7 @@ async function main(){
     await page.getByText('Trả lời',{exact:true}).click();
     await page.getByText('Tắt tiếng',{exact:true}).click();
     await page.getByText('Đã tắt tiếng',{exact:true}).waitFor();
-    await page.getByText('KẾT THÚC CUỘC GỌI',{exact:true}).click();
+    await page.getByTestId('end-call-btn').or(page.getByLabel('KẾT THÚC CUỘC GỌI')).click();
     await page.getByText('Kho Vault',{exact:true}).click();
     await page.getByText(/Lịch sử \(/).click();
     assert.ok((await page.locator('body').innerText()).includes('Cuộc gọi của tôi'));

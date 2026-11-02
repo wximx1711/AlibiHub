@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { colors, typography, spacing, borderRadius } from '../theme/colors';
 
 export default function Header({ title, subtitle, rightAction, rightLabel }) {
@@ -10,7 +10,11 @@ export default function Header({ title, subtitle, rightAction, rightLabel }) {
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>
       {rightAction ? (
-        <TouchableOpacity style={styles.actionButton} onPress={rightAction} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={rightAction}
+          activeOpacity={0.7}
+        >
           <Text style={styles.actionLabel}>{rightLabel || 'Hành động'}</Text>
         </TouchableOpacity>
       ) : null}
@@ -20,9 +24,9 @@ export default function Header({ title, subtitle, rightAction, rightLabel }) {
 
 const styles = StyleSheet.create({
   header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingTop: Platform.OS === 'ios' ? 12 : spacing.md,
+    paddingBottom: spacing.sm + 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -35,27 +39,26 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.textPrimary,
-    fontSize: typography.fontSizes.xl,
+    fontSize: typography.fontSizes.lg,
     fontWeight: typography.fontWeights.bold,
     letterSpacing: 0.3,
   },
   subtitle: {
     color: colors.textSecondary,
-    fontSize: typography.fontSizes.xs,
-    marginTop: 2,
+    fontSize: typography.fontSizes.xs - 1,
+    marginTop: 1,
   },
   actionButton: {
     backgroundColor: colors.bgCardElevated,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: 6,
     borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: colors.accentLight + '40',
+    borderColor: colors.bgCardBorder,
   },
   actionLabel: {
-    color: colors.accentLight,
+    color: colors.textPrimary,
     fontSize: typography.fontSizes.xs,
-    fontWeight: typography.fontWeights.semiBold,
+    fontWeight: typography.fontWeights.medium,
   },
 });
-

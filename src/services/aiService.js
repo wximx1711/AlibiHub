@@ -50,3 +50,31 @@ export async function generateStructuredScenario(situationDescription, preferred
   const data = await generate('/api/ai/scenario', { situationDescription, preferredCategory });
   return { success: true, scenario: scenarioFromResponse(data.scenario, situationDescription) };
 }
+
+export async function generateCallerDialogue({ callerName, callerRole, scenarioTitle, category, context = '' }) {
+  try {
+    const data = await generate('/api/ai/dialogue', {
+      callerName: text(callerName || 'Người gọi', 'Tên người gọi', 1, 100),
+      callerRole: typeof callerRole === 'string' ? callerRole.slice(0, 100) : '',
+      scenarioTitle: typeof scenarioTitle === 'string' ? scenarioTitle.slice(0, 150) : '',
+      category: typeof category === 'string' ? category.slice(0, 50) : '',
+      context: typeof context === 'string' ? context.slice(0, 200) : '',
+    });
+    if (data && Array.isArray(data.dialogue) && data.dialogue.length > 0) {
+      return { success: true, dialogue: data.dialogue, isAiGenerated: true, model: data.model };
+    }
+  } catch (err) {
+    // Fallback attempt via /api/ai/scenario if /api/ai/dialogue returns 404 on older proxy instances
+    try {
+      const description = `Cuộc gọi từ ${callerName || 'Người gọi'} (${callerRole || 'Gấp'}): ${scenarioTitle || 'Cần hỗ trợ gấp'}`;
+      const scData = await generate('/api/ai/scenario', {
+        situationDescription: description,
+        preferredCategory: ['Công sở', 'Gia đình', 'Bạn bè', 'Hẹn hò / Tiệc tùng', 'Khẩn cấp'].includes(category) ? category : '',
+      });
+      if (scData?.scenario?.dialogue && scData.scenario.dialogue.length > 0) {
+        return { success: true, dialogue: scData.scenario.dialogue, isAiGenerated: true, model: scData.scenario.model };
+      }
+    } catch (_) {}
+    throw err;
+  }
+}

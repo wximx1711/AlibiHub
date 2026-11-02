@@ -13,21 +13,32 @@ export default function ConfirmModal({
   onCancel,
 }) {
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onCancel}
+    >
       <View style={styles.overlay}>
         <View style={styles.modalContent}>
           <Text style={styles.title}>{title || 'Xác nhận'}</Text>
           <Text style={styles.message}>{message}</Text>
 
           <View style={styles.buttonRow}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={onCancel}
+              activeOpacity={0.7}
+            >
               <Text style={styles.cancelText}>{cancelText}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[
                 styles.confirmBtn,
-                isDestructive ? styles.confirmBtnDestructive : styles.confirmBtnPrimary,
+                isDestructive
+                  ? styles.confirmBtnDestructive
+                  : styles.confirmBtnPrimary,
               ]}
               onPress={onConfirm}
               activeOpacity={0.8}
@@ -44,14 +55,14 @@ export default function ConfirmModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.xl,
   },
   modalContent: {
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 380,
     backgroundColor: colors.bgCardElevated,
     borderRadius: borderRadius.lg,
     padding: spacing.xl,
@@ -60,34 +71,35 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.textPrimary,
-    fontSize: typography.fontSizes.lg,
+    fontSize: typography.fontSizes.md + 1,
     fontWeight: typography.fontWeights.bold,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   message: {
     color: colors.textSecondary,
-    fontSize: typography.fontSizes.sm,
-    lineHeight: 20,
-    marginBottom: spacing.xl,
+    fontSize: typography.fontSizes.xs + 1,
+    lineHeight: 19,
+    marginBottom: spacing.lg,
   },
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    gap: spacing.sm,
   },
   cancelBtn: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm + 2,
-    marginRight: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    justifyContent: 'center',
   },
   cancelText: {
     color: colors.textMuted,
-    fontSize: typography.fontSizes.sm,
+    fontSize: typography.fontSizes.xs + 1,
     fontWeight: typography.fontWeights.medium,
   },
   confirmBtn: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm + 2,
-    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.sm,
   },
   confirmBtnPrimary: {
     backgroundColor: colors.primary,
@@ -97,8 +109,7 @@ const styles = StyleSheet.create({
   },
   confirmText: {
     color: '#FFFFFF',
-    fontSize: typography.fontSizes.sm,
+    fontSize: typography.fontSizes.xs + 1,
     fontWeight: typography.fontWeights.bold,
   },
 });
-

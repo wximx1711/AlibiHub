@@ -2,7 +2,12 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors, typography, spacing, borderRadius } from '../theme/colors';
 
-export default function ScenarioCard({ scenario, onSelect, onLaunch, onToggleFavorite }) {
+export default function ScenarioCard({
+  scenario,
+  onSelect,
+  onLaunch,
+  onToggleFavorite,
+}) {
   const getTagColor = (tag) => {
     switch (tag) {
       case 'tagWork':
@@ -36,10 +41,21 @@ export default function ScenarioCard({ scenario, onSelect, onLaunch, onToggleFav
   const tagColor = getTagColor(scenario.categoryTag);
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onSelect} activeOpacity={0.8}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={onSelect}
+      activeOpacity={0.8}
+    >
       <View style={styles.cardHeader}>
-        <View style={[styles.badge, { backgroundColor: tagColor + '25', borderColor: tagColor }]}>
-          <Text style={[styles.badgeText, { color: tagColor }]}>{scenario.category || 'Tình huống'}</Text>
+        <View
+          style={[
+            styles.badge,
+            { backgroundColor: tagColor + '20', borderColor: tagColor + '40' },
+          ]}
+        >
+          <Text style={[styles.badgeText, { color: tagColor }]}>
+            {scenario.category || 'Tình huống'}
+          </Text>
         </View>
         <TouchableOpacity
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -77,7 +93,11 @@ export default function ScenarioCard({ scenario, onSelect, onLaunch, onToggleFav
         <Text style={styles.dialogueCount}>
           💬 {scenario.dialogue?.length || 2} câu thoại
         </Text>
-        <TouchableOpacity style={styles.launchBtn} onPress={onLaunch} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.launchBtn}
+          onPress={onLaunch}
+          activeOpacity={0.8}
+        >
           <Text style={styles.launchBtnText}>Gọi mô phỏng →</Text>
         </TouchableOpacity>
       </View>
@@ -88,9 +108,9 @@ export default function ScenarioCard({ scenario, onSelect, onLaunch, onToggleFav
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.bgCard,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.bgCardBorder,
   },
@@ -98,56 +118,58 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   badge: {
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: 3,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
     borderRadius: borderRadius.sm,
     borderWidth: 1,
   },
   badgeText: {
-    fontSize: typography.fontSizes.xs,
-    fontWeight: typography.fontWeights.bold,
+    fontSize: typography.fontSizes.xs - 1,
+    fontWeight: typography.fontWeights.semiBold,
   },
   heart: {
     fontSize: 16,
   },
   title: {
     color: colors.textPrimary,
-    fontSize: typography.fontSizes.md,
+    fontSize: typography.fontSizes.sm + 1,
     fontWeight: typography.fontWeights.bold,
-    lineHeight: 22,
+    lineHeight: 20,
     marginBottom: 4,
   },
   description: {
     color: colors.textSecondary,
     fontSize: typography.fontSizes.xs,
-    lineHeight: 18,
-    marginBottom: spacing.md,
+    lineHeight: 16,
+    marginBottom: spacing.sm,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
     flexWrap: 'wrap',
   },
   callerInfo: {
-    color: colors.accentLight,
-    fontSize: typography.fontSizes.xs,
+    color: colors.textPrimary,
+    fontSize: typography.fontSizes.xs - 1,
     fontWeight: typography.fontWeights.medium,
   },
   metaDivider: {
     color: colors.textMuted,
-    marginHorizontal: spacing.sm,
+    marginHorizontal: spacing.xs + 2,
+    fontSize: typography.fontSizes.xs - 2,
   },
   ambientInfo: {
     color: colors.textSecondary,
-    fontSize: typography.fontSizes.xs,
+    fontSize: typography.fontSizes.xs - 1,
   },
   delayInfo: {
     color: colors.warning,
-    fontSize: typography.fontSizes.xs,
+    fontSize: typography.fontSizes.xs - 1,
+    fontWeight: typography.fontWeights.medium,
   },
   footerRow: {
     flexDirection: 'row',
@@ -155,16 +177,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: colors.bgCardBorder,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xs + 4,
   },
   dialogueCount: {
     color: colors.textMuted,
-    fontSize: typography.fontSizes.xs,
+    fontSize: typography.fontSizes.xs - 1,
   },
   launchBtn: {
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,
-    paddingVertical: 6,
+    paddingVertical: 5,
     borderRadius: borderRadius.sm,
   },
   launchBtnText: {
@@ -173,4 +195,3 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeights.bold,
   },
 });
-

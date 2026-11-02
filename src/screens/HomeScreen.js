@@ -22,7 +22,9 @@ export default function HomeScreen({
   onToggleFavorite,
   onNavigateTab,
 }) {
-  const pinnedScenarios = scenarios.filter((s) => s.isPinned || s.isFavorite).slice(0, 3);
+  const pinnedScenarios = scenarios
+    .filter((s) => s.isPinned || s.isFavorite)
+    .slice(0, 3);
   const recentHistory = callHistory.slice(0, 3);
 
   return (
@@ -34,8 +36,11 @@ export default function HomeScreen({
         rightLabel="⚙️ Cài đặt"
       />
 
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-        {/* Primary CTA: Quick Escape */}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+      >
+        {/* 1. PRIORITY CTA: Quick Escape (1-Tap Emergency Trigger) */}
         <View style={styles.sectionWrap}>
           <QuickEscapeButton
             onPress={onQuickEscape}
@@ -45,33 +50,47 @@ export default function HomeScreen({
           />
         </View>
 
-        {/* AI Assistant Promo Banner */}
-        <TouchableOpacity
-          style={styles.aiBanner}
-          onPress={() => onNavigateTab('ai')}
-          activeOpacity={0.85}
-        >
-          <View style={styles.aiBannerHeader}>
-            <Text style={styles.aiBadge}>GEMINI AI POWERED</Text>
-            <Text style={styles.aiSparkle}>✨</Text>
-          </View>
-          <Text style={styles.aiBannerTitle}>
-            Tạo kịch bản cứu nguy tức thì từ mô tả tự nhiên
-          </Text>
-          <Text style={styles.aiBannerSub}>
-            Mô tả tình huống khó xử của bạn → AI đề xuất người gọi, đoạn thoại & âm nền hợp lý.
-          </Text>
-          <View style={styles.aiBannerFooter}>
-            <Text style={styles.aiBannerAction}>Trải nghiệm Trợ lý AI →</Text>
-          </View>
-        </TouchableOpacity>
+        {/* 2 & 3. PRIMARY ACTIONS: Tạo cuộc gọi & Hẹn giờ */}
+        <View style={styles.sectionWrap}>
+          <View style={styles.actionGrid}>
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => onNavigateTab('call_setup')}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.actionIconWrap, { backgroundColor: 'rgba(37, 99, 235, 0.15)' }]}>
+                <Text style={styles.actionIcon}>📞</Text>
+              </View>
+              <View style={styles.actionTextWrap}>
+                <Text style={styles.actionTitle}>Tạo cuộc gọi</Text>
+                <Text style={styles.actionSub}>Gọi tức thì & kịch bản</Text>
+              </View>
+            </TouchableOpacity>
 
-        {/* Pinned / Favorite Scenarios */}
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => onNavigateTab('call_setup')}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.actionIconWrap, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+                <Text style={styles.actionIcon}>⏱️</Text>
+              </View>
+              <View style={styles.actionTextWrap}>
+                <Text style={styles.actionTitle}>Hẹn giờ</Text>
+                <Text style={styles.actionSub}>10s, 1p, giờ cụ thể</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 4. FAVORITE / PINNED SCENARIOS */}
         <View style={styles.sectionWrap}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>📌 Kịch bản ghim & yêu thích</Text>
+            <Text style={styles.sectionTitle}>📌 Kịch bản yêu thích & gần đây</Text>
             <TouchableOpacity onPress={() => onNavigateTab('library')}>
-              <Text style={styles.viewAllText}>Xem tất cả ({scenarios.length}) →</Text>
+              <Text style={styles.viewAllText}>
+                Xem tất cả ({scenarios.length}) →
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -87,58 +106,34 @@ export default function HomeScreen({
             ))
           ) : (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>Chưa có kịch bản yêu thích nào được ghim.</Text>
+              <Text style={styles.emptyText}>
+                Chưa có kịch bản yêu thích nào được ghim.
+              </Text>
             </View>
           )}
         </View>
 
-        {/* Quick Tools Grid */}
+        {/* 5. SMALL SECONDARY ENTRY TO AI ASSISTANT (Utility bar, not dominant banner) */}
         <View style={styles.sectionWrap}>
-          <Text style={styles.sectionTitle}>🛠️ Công cụ nhanh</Text>
-          <View style={styles.toolsGrid}>
-            <TouchableOpacity
-              style={styles.toolItem}
-              onPress={() => onNavigateTab('call_setup')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.toolIcon}>📞</Text>
-              <Text style={styles.toolTitle}>Tùy chỉnh Cuộc gọi</Text>
-              <Text style={styles.toolSub}>Hẹn giờ & âm nền</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.toolItem}
-              onPress={() => onNavigateTab('vault')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.toolIcon}>🔐</Text>
-              <Text style={styles.toolTitle}>Kho Alibi Vault</Text>
-              <Text style={styles.toolSub}>Quản lý hồ sơ & lưu trữ</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.toolItem}
-              onPress={() => onNavigateTab('network')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.toolIcon}>🤝</Text>
-              <Text style={styles.toolTitle}>Mạng lưới bạn bè</Text>
-              <Text style={styles.toolSub}>Yêu cầu cứu nguy thật</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.toolItem}
-              onPress={() => onNavigateTab('ai')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.toolIcon}>💬</Text>
-              <Text style={styles.toolTitle}>Soạn tin nhắn từ chối</Text>
-              <Text style={styles.toolSub}>5 phong cách giao tiếp</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.aiUtilityBar}
+            onPress={() => onNavigateTab('ai')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.aiIconBubble}>
+              <Text style={styles.aiIcon}>✨</Text>
+            </View>
+            <View style={styles.aiTextContainer}>
+              <Text style={styles.aiBarTitle}>Trợ lý AI Gemini</Text>
+              <Text style={styles.aiBarSub}>
+                Soạn tin nhắn từ chối lịch sự & sinh kịch bản tự động
+              </Text>
+            </View>
+            <Text style={styles.aiChevron}>→</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Recent History */}
+        {/* 6. RECENT CALL HISTORY */}
         <View style={styles.sectionWrap}>
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>🕒 Cuộc gọi gần đây</Text>
@@ -150,21 +145,45 @@ export default function HomeScreen({
           </View>
 
           {recentHistory.length > 0 ? (
-            recentHistory.map((item) => (
-              <View key={item.id} style={styles.historyItem}>
+            recentHistory.map((entry) => (
+              <View key={entry.id} style={styles.historyCard}>
                 <View style={styles.historyLeft}>
-                  <Text style={styles.historyCaller}>{item.callerName}</Text>
-                  <Text style={styles.historyScenario}>{item.scenarioTitle}</Text>
+                  <View
+                    style={[
+                      styles.historyStatusDot,
+                      {
+                        backgroundColor:
+                          entry.status === 'completed'
+                            ? colors.success
+                            : colors.error,
+                      },
+                    ]}
+                  />
+                  <View style={styles.historyInfo}>
+                    <Text style={styles.historyCaller} numberOfLines={1}>
+                      {entry.callerName}
+                    </Text>
+                    <Text style={styles.historyScenario} numberOfLines={1}>
+                      {entry.scenarioTitle}
+                    </Text>
+                  </View>
                 </View>
+
                 <View style={styles.historyRight}>
-                  <Text style={styles.historyDate}>{item.dateFormatted}</Text>
-                  <Text style={styles.historyDuration}>{item.durationSeconds || 0}s</Text>
+                  <Text style={styles.historyDate}>{entry.dateFormatted}</Text>
+                  <Text style={styles.historyDuration}>
+                    {entry.status === 'completed'
+                      ? `${entry.durationSeconds || 0}s`
+                      : 'Đã từ chối'}
+                  </Text>
                 </View>
               </View>
             ))
           ) : (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>Chưa có lịch sử mô phỏng cuộc gọi nào.</Text>
+              <Text style={styles.emptyText}>
+                Chưa có lịch sử cuộc gọi mô phỏng nào.
+              </Text>
             </View>
           )}
         </View>
@@ -182,141 +201,105 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: spacing.lg,
+    padding: spacing.md,
     paddingBottom: spacing.xxxl * 2,
   },
   sectionWrap: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   sectionTitle: {
     color: colors.textPrimary,
-    fontSize: typography.fontSizes.md,
+    fontSize: typography.fontSizes.sm + 1,
     fontWeight: typography.fontWeights.bold,
+    letterSpacing: 0.3,
   },
   viewAllText: {
-    color: colors.accentLight,
+    color: colors.primary,
     fontSize: typography.fontSizes.xs,
     fontWeight: typography.fontWeights.semiBold,
   },
-  aiBanner: {
-    backgroundColor: colors.bgCardElevated,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.xl,
-    borderWidth: 1.5,
-    borderColor: colors.accent,
-    shadowColor: colors.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  aiBannerHeader: {
+  actionGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
+    gap: spacing.sm,
   },
-  aiBadge: {
-    color: colors.accentLight,
-    fontSize: typography.fontSizes.xs - 1,
-    fontWeight: typography.fontWeights.extraBold,
-    letterSpacing: 1,
-  },
-  aiSparkle: {
-    fontSize: 18,
-  },
-  aiBannerTitle: {
-    color: colors.textPrimary,
-    fontSize: typography.fontSizes.md,
-    fontWeight: typography.fontWeights.bold,
-    lineHeight: 22,
-    marginBottom: 4,
-  },
-  aiBannerSub: {
-    color: colors.textSecondary,
-    fontSize: typography.fontSizes.xs,
-    lineHeight: 18,
-    marginBottom: spacing.md,
-  },
-  aiBannerFooter: {
-    alignItems: 'flex-end',
-  },
-  aiBannerAction: {
-    color: colors.accentLight,
-    fontSize: typography.fontSizes.xs,
-    fontWeight: typography.fontWeights.bold,
-  },
-  toolsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  toolItem: {
-    width: '48%',
+  actionCard: {
+    flex: 1,
     backgroundColor: colors.bgCard,
     borderRadius: borderRadius.md,
     padding: spacing.md,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.bgCardBorder,
-  },
-  toolIcon: {
-    fontSize: 24,
-    marginBottom: spacing.xs,
-  },
-  toolTitle: {
-    color: colors.textPrimary,
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.bold,
-    marginBottom: 2,
-  },
-  toolSub: {
-    color: colors.textSecondary,
-    fontSize: typography.fontSizes.xs - 1,
-  },
-  historyItem: {
-    backgroundColor: colors.bgCard,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.xs,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.bgCardBorder,
   },
-  historyLeft: {
+  actionIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  actionIcon: {
+    fontSize: 20,
+  },
+  actionTextWrap: {
     flex: 1,
   },
-  historyCaller: {
+  actionTitle: {
     color: colors.textPrimary,
     fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.semiBold,
-  },
-  historyScenario: {
-    color: colors.textSecondary,
-    fontSize: typography.fontSizes.xs,
-    marginTop: 2,
-  },
-  historyRight: {
-    alignItems: 'flex-end',
-  },
-  historyDate: {
-    color: colors.textMuted,
-    fontSize: typography.fontSizes.xs - 1,
-  },
-  historyDuration: {
-    color: colors.success,
-    fontSize: typography.fontSizes.xs,
     fontWeight: typography.fontWeights.bold,
+  },
+  actionSub: {
+    color: colors.textSecondary,
+    fontSize: typography.fontSizes.xs - 1,
     marginTop: 2,
+  },
+  aiUtilityBar: {
+    backgroundColor: colors.bgCard,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.bgCardBorder,
+  },
+  aiIconBubble: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(37, 99, 235, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  aiIcon: {
+    fontSize: 18,
+  },
+  aiTextContainer: {
+    flex: 1,
+  },
+  aiBarTitle: {
+    color: colors.textPrimary,
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.bold,
+  },
+  aiBarSub: {
+    color: colors.textSecondary,
+    fontSize: typography.fontSizes.xs - 1,
+    marginTop: 2,
+  },
+  aiChevron: {
+    color: colors.textMuted,
+    fontSize: 16,
+    marginLeft: spacing.sm,
   },
   emptyCard: {
     backgroundColor: colors.bgCard,
@@ -330,5 +313,53 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: typography.fontSizes.xs,
   },
+  historyCard: {
+    backgroundColor: colors.bgCard,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.xs,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.bgCardBorder,
+  },
+  historyLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  historyStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: spacing.sm,
+  },
+  historyInfo: {
+    flex: 1,
+  },
+  historyCaller: {
+    color: colors.textPrimary,
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.semiBold,
+  },
+  historyScenario: {
+    color: colors.textSecondary,
+    fontSize: typography.fontSizes.xs - 1,
+    marginTop: 1,
+  },
+  historyRight: {
+    alignItems: 'flex-end',
+  },
+  historyDate: {
+    color: colors.textMuted,
+    fontSize: typography.fontSizes.xs - 2,
+  },
+  historyDuration: {
+    color: colors.textSecondary,
+    fontSize: typography.fontSizes.xs,
+    fontWeight: typography.fontWeights.medium,
+    marginTop: 2,
+  },
 });
-

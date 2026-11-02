@@ -45,6 +45,16 @@ export default function SmartCallSetupScreen({
   const [ambientSound, setAmbientSound] = useState(initialConfig?.ambientSound || 'office');
   const [voiceVolume, setVoiceVolume] = useState(initialConfig?.voiceVolume ?? 1.0);
   const [ambientVolume, setAmbientVolume] = useState(initialConfig?.ambientVolume ?? 0.25);
+  const [callAppearance, setCallAppearance] = useState(
+    initialConfig?.callAppearance || 'android'
+  );
+
+  const appearanceOptions = [
+    { id: 'android', label: 'Android', icon: '🤖' },
+    { id: 'ios', label: 'iOS', icon: '🍏' },
+    { id: 'zalo', label: 'Zalo', icon: '💬' },
+    { id: 'messenger', label: 'Messenger', icon: '⚡' },
+  ];
 
   const [dialogue, setDialogue] = useState(
     initialConfig?.dialogue && initialConfig.dialogue.length > 0
@@ -124,6 +134,7 @@ export default function SmartCallSetupScreen({
       dialogue,
       title: title.trim(),
       suggestedMessage: message.trim(),
+      callAppearance,
       id: initialConfig?.isCustom ? initialConfig.id : undefined,
     };
   };
@@ -161,13 +172,46 @@ export default function SmartCallSetupScreen({
       />
 
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-<View style={styles.formBox}>
-          <Text style={styles.fieldLabel}>Tên kịch bản</Text>
-          <TextInput style={styles.input} value={title} onChangeText={setTitle} maxLength={120} />
-          <Text style={styles.fieldLabel}>Tin nhắn kết thúc</Text>
-          <TextInput style={styles.input} value={message} onChangeText={setMessage} multiline maxLength={1500} />
-          <Text style={styles.fieldLabel}>Ảnh đại diện (URL HTTPS, tùy chọn)</Text>
-          <TextInput style={styles.input} value={avatarUrl} onChangeText={setAvatarUrl} autoCapitalize="none" maxLength={1000} />
+        {/* Scenario metadata */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>TỔNG QUAN KỊCH BẢN</Text>
+          <View style={styles.formBox}>
+            <View style={styles.fieldRow}>
+              <Text style={styles.fieldLabel}>Tên kịch bản:</Text>
+              <TextInput
+                style={styles.input}
+                value={title}
+                onChangeText={setTitle}
+                maxLength={120}
+                placeholder="VD: Cuộc gọi của tôi"
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
+            <View style={styles.fieldRow}>
+              <Text style={styles.fieldLabel}>Tin nhắn kết thúc / ghi chú:</Text>
+              <TextInput
+                style={styles.input}
+                value={message}
+                onChangeText={setMessage}
+                multiline
+                maxLength={1500}
+                placeholder="Lời xin lỗi hoặc tin nhắn gửi sau khi thoát..."
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
+            <View style={styles.fieldRow}>
+              <Text style={styles.fieldLabel}>Ảnh đại diện (URL HTTPS, tùy chọn):</Text>
+              <TextInput
+                style={styles.input}
+                value={avatarUrl}
+                onChangeText={setAvatarUrl}
+                autoCapitalize="none"
+                maxLength={1000}
+                placeholder="https://..."
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
+          </View>
         </View>
         {/* Caller Profile Selection */}
         <View style={styles.section}>
@@ -242,9 +286,32 @@ export default function SmartCallSetupScreen({
           </View>
         </View>
 
+        {/* 2. Call Appearance Style Selector */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>2. KIỂU GIAO DIỆN CUỘC GỌI (CALL STYLE)</Text>
+          <View style={styles.appearanceGrid}>
+            {appearanceOptions.map((opt) => {
+              const isSelected = callAppearance === opt.id;
+              return (
+                <TouchableOpacity
+                  key={opt.id}
+                  style={[styles.appearanceTab, isSelected && styles.appearanceTabSelected]}
+                  onPress={() => setCallAppearance(opt.id)}
+                  activeOpacity={0.75}
+                >
+                  <Text style={styles.appearanceTabIcon}>{opt.icon}</Text>
+                  <Text style={[styles.appearanceTabText, isSelected && styles.appearanceTabTextSelected]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
         {/* Schedule Selector */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>2. THỜI GIAN ĐỔ CHUÔNG (SCHEDULE)</Text>
+          <Text style={styles.sectionTitle}>3. THỜI GIAN ĐỔ CHUÔNG (SCHEDULE)</Text>
 <Text style={styles.fieldLabel}>Hoặc chọn giờ hôm nay (HH:mm, để trống để dùng khoảng chờ)</Text>
           <TextInput style={styles.input} value={clockTime} onChangeText={setClockTime} placeholder="21:30" placeholderTextColor={colors.textMuted} maxLength={5} />
           <View style={styles.scheduleGrid}>
@@ -452,6 +519,37 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSizes.xs,
   },
   chipNameSelected: {
+    color: colors.textPrimary,
+    fontWeight: typography.fontWeights.bold,
+  },
+  appearanceGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.xs,
+  },
+  appearanceTab: {
+    flex: 1,
+    backgroundColor: colors.bgCard,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm + 2,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.bgCardBorder,
+  },
+  appearanceTabSelected: {
+    backgroundColor: colors.primary + '20',
+    borderColor: colors.primary,
+  },
+  appearanceTabIcon: {
+    fontSize: 18,
+    marginBottom: 4,
+  },
+  appearanceTabText: {
+    color: colors.textSecondary,
+    fontSize: typography.fontSizes.xs - 1,
+    fontWeight: typography.fontWeights.medium,
+  },
+  appearanceTabTextSelected: {
     color: colors.textPrimary,
     fontWeight: typography.fontWeights.bold,
   },

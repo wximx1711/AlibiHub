@@ -1,21 +1,38 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors, typography, spacing, borderRadius } from '../theme/colors';
 
-export default function CallerCard({ caller, onSelect, onEdit, onDelete, isSelected }) {
+export default function CallerCard({
+  caller,
+  onSelect,
+  onEdit,
+  onDelete,
+  isSelected,
+}) {
   return (
     <TouchableOpacity
-      style={[
-        styles.card,
-        isSelected && styles.cardSelected,
-      ]}
+      style={[styles.card, isSelected && styles.cardSelected]}
       onPress={onSelect}
       activeOpacity={0.8}
     >
-      <View style={[styles.avatarCircle, { backgroundColor: caller.avatarBg || colors.accent }]}>
-        {caller.avatarUrl ? <Image source={{ uri: caller.avatarUrl }} style={{ width: 48, height: 48, borderRadius: 24 }} /> : <Text style={styles.avatarInitials}>
-          {caller.initials || caller.name?.substring(0, 2)?.toUpperCase() || 'AL'}
-        </Text>}
+      <View
+        style={[
+          styles.avatarCircle,
+          { backgroundColor: caller.avatarBg || '#2A364F' },
+        ]}
+      >
+        {caller.avatarUrl ? (
+          <Image
+            source={{ uri: caller.avatarUrl }}
+            style={{ width: 44, height: 44, borderRadius: 22 }}
+          />
+        ) : (
+          <Text style={styles.avatarInitials}>
+            {caller.initials ||
+              caller.name?.substring(0, 2)?.toUpperCase() ||
+              'AL'}
+          </Text>
+        )}
       </View>
 
       <View style={styles.infoWrap}>
@@ -52,7 +69,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs + 2,
     borderWidth: 1,
     borderColor: colors.bgCardBorder,
   },
@@ -61,16 +78,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgCardElevated,
   },
   avatarCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
   },
   avatarInitials: {
     color: '#FFFFFF',
-    fontSize: typography.fontSizes.md,
+    fontSize: typography.fontSizes.sm,
     fontWeight: typography.fontWeights.bold,
   },
   infoWrap: {
@@ -82,7 +99,7 @@ const styles = StyleSheet.create({
   },
   name: {
     color: colors.textPrimary,
-    fontSize: typography.fontSizes.md,
+    fontSize: typography.fontSizes.sm + 1,
     fontWeight: typography.fontWeights.semiBold,
     marginRight: 4,
   },
@@ -91,36 +108,43 @@ const styles = StyleSheet.create({
   },
   role: {
     color: colors.textSecondary,
-    fontSize: typography.fontSizes.xs,
+    fontSize: typography.fontSizes.xs - 1,
     marginTop: 1,
   },
   phone: {
-    color: colors.accentLight,
-    fontSize: typography.fontSizes.xs,
-    marginTop: 2,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    color: colors.textMuted,
+    fontSize: typography.fontSizes.xs - 1,
+    marginTop: 1,
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   editBtn: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+    backgroundColor: colors.bgCardElevated,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 5,
+    borderRadius: borderRadius.sm,
     marginRight: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.bgCardBorder,
   },
   btnText: {
     color: colors.primary,
     fontSize: typography.fontSizes.xs,
-    fontWeight: typography.fontWeights.medium,
+    fontWeight: typography.fontWeights.semiBold,
   },
   deleteBtn: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 5,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
   },
   deleteText: {
     color: colors.error,
     fontSize: typography.fontSizes.xs,
-    fontWeight: typography.fontWeights.medium,
+    fontWeight: typography.fontWeights.semiBold,
   },
 });

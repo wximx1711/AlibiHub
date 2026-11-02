@@ -45,6 +45,7 @@ import {
 
 import { notificationService } from './src/services/notificationService';
 import { audioService } from './src/services/audioService';
+import { getDynamicRoleDialogue } from './src/services/dialogueService';
 
 // Screens
 import HomeScreen from './src/screens/HomeScreen';
@@ -129,7 +130,12 @@ function AppContent() {
   // Trigger Incoming Call Overlay
   const triggerIncomingCall = useCallback((payload) => {
     notificationService.cancelScheduledCall().catch(err => Alert.alert('Lịch hẹn', err.message));
-    setActiveCallPayload({ ...payload, ringtoneType: settings.ringtoneType, vibrationEnabled: settings.vibrationEnabled });
+    setActiveCallPayload({
+      ...payload,
+      ringtoneType: settings.ringtoneType,
+      vibrationEnabled: settings.vibrationEnabled,
+      callAppearance: payload?.callAppearance || settings?.callAppearance || 'android',
+    });
     setActiveModalScreen('incoming_call');
   }, [settings]);
 
@@ -155,6 +161,20 @@ function AppContent() {
       role: 'Gia đình',
     };
 
+    const callerInfo = {
+      name: favoriteSc?.callerName || topCaller.name,
+      phoneNumber: favoriteSc?.callerPhone || topCaller.phoneNumber,
+      role: favoriteSc?.callerRole || topCaller.role,
+      avatarUrl: favoriteSc?.callerAvatar || topCaller.avatarUrl,
+    };
+
+    const dynamicDialogue = getDynamicRoleDialogue(
+      callerInfo,
+      favoriteSc?.title || 'Cuộc gọi khẩn cấp (Quick Escape)',
+      favoriteSc?.category || callerInfo.role,
+      favoriteSc?.dialogue
+    );
+
     const payload = {
       caller: {
         name: favoriteSc?.callerName || topCaller.name,
@@ -162,6 +182,7 @@ function AppContent() {
         role: favoriteSc?.callerRole || topCaller.role,
         avatarUrl: favoriteSc?.callerAvatar || topCaller.avatarUrl,
       },
+      caller: callerInfo,
       delaySeconds: 0,
       ambientSound: favoriteSc?.ambientSound || 'cafe',
       ambientVolume: favoriteSc?.ambientVolume ?? settings.ambientVolume ?? 0.25,
@@ -170,7 +191,9 @@ function AppContent() {
         'Alo con à, về nhà gấp nhé bố mẹ đang cần con hỗ trợ việc gia đình ngay!',
         'Dạ vâng mẹ, con đang chào mọi người rồi về ngay đây ạ!',
       ],
+      dialogue: dynamicDialogue,
       title: favoriteSc?.title || 'Cuộc gọi khẩn cấp (Quick Escape)',
+      callAppearance: favoriteSc?.callAppearance || settings?.callAppearance || 'android',
     };
 
     triggerIncomingCall(payload);
@@ -178,10 +201,11 @@ function AppContent() {
 
   // Schedule Call
   const handleScheduleCall = async (payload) => {
-    try { await notificationService.scheduleCall(payload, (firedPayload) => {
-      triggerIncomingCall(firedPayload);
-    });
-    setCurrentTab('home');
+    try {
+      await notificationService.scheduleCall(payload, (firedPayload) => {
+        triggerIncomingCall(firedPayload);
+      });
+      setCurrentTab('home');
     } catch (err) { Alert.alert('Không thể hẹn cuộc gọi', err.message); }
   };
 
@@ -192,6 +216,9 @@ function AppContent() {
 
   // Accept Call (Incoming -> Active)
   const handleAcceptCall = (payload) => {
+    if (payload?.callAppearance) {
+      setActiveCallPayload((prev) => ({ ...prev, callAppearance: payload.callAppearance }));
+    }
     setActiveModalScreen('active_call');
   };
 
@@ -540,10 +567,10 @@ const styles = StyleSheet.create({
   },
   bottomNav: {
     flexDirection: 'row',
-    backgroundColor: colors.bgCard,
+    backgroundColor: '#0F172A',
     borderTopWidth: 1,
-    borderTopColor: colors.bgCardBorder,
-    paddingVertical: spacing.xs,
+    borderTopColor: '#1E293B',
+    paddingVertical: 6,
     paddingHorizontal: spacing.sm,
     justifyContent: 'space-around',
     alignItems: 'center',
@@ -552,20 +579,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 4,
     paddingHorizontal: spacing.xs,
-    minWidth: 54,
+    minWidth: 58,
   },
   navIcon: {
     fontSize: 20,
     marginBottom: 2,
-    opacity: 0.6,
+    opacity: 0.65,
   },
   navIconActive: {
     opacity: 1,
-    transform: [{ scale: 1.15 }],
+    transform: [{ scale: 1.1 }],
   },
   navLabel: {
     color: colors.textSecondary,
-    fontSize: typography.fontSizes.xs - 2,
+    fontSize: 10,
     fontWeight: typography.fontWeights.medium,
   },
   navLabelActive: {

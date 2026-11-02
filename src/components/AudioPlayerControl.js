@@ -18,7 +18,9 @@ export default function AudioPlayerControl({
       <View style={styles.row}>
         <View style={styles.labelCol}>
           <Text style={styles.label}>🗣️ Âm lượng Giọng thoại</Text>
-          <Text style={styles.subLabel}>Ưu tiên nổi bật ({Math.round(voiceVolume * 100)}%)</Text>
+          <Text style={styles.subLabel}>
+            Ưu tiên rõ ràng ({Math.round(voiceVolume * 100)}%)
+          </Text>
         </View>
         <View style={styles.stepsWrap}>
           {steps.map((s) => (
@@ -47,7 +49,9 @@ export default function AudioPlayerControl({
       <View style={[styles.row, { marginTop: spacing.md }]}>
         <View style={styles.labelCol}>
           <Text style={styles.label}>🔊 Âm thanh bối cảnh (Ambient)</Text>
-          <Text style={styles.subLabel}>Giữ thấp để không lấn giọng ({Math.round(ambientVolume * 100)}%)</Text>
+          <Text style={styles.subLabel}>
+            Giữ thấp để không lấn giọng ({Math.round(ambientVolume * 100)}%)
+          </Text>
         </View>
         <View style={styles.stepsWrap}>
           {steps.map((s) => (
@@ -77,19 +81,19 @@ export default function AudioPlayerControl({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.bgCardElevated,
+    backgroundColor: colors.bgCard,
     borderRadius: borderRadius.md,
     padding: spacing.md,
-    marginVertical: spacing.sm,
+    marginVertical: spacing.xs,
     borderWidth: 1,
     borderColor: colors.bgCardBorder,
   },
   header: {
-    color: colors.accentLight,
+    color: colors.textPrimary,
     fontSize: typography.fontSizes.xs,
     fontWeight: typography.fontWeights.bold,
     letterSpacing: 0.5,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   row: {
     marginBottom: spacing.xs,
@@ -99,8 +103,8 @@ const styles = StyleSheet.create({
   },
   label: {
     color: colors.textPrimary,
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.medium,
+    fontSize: typography.fontSizes.xs + 1,
+    fontWeight: typography.fontWeights.semiBold,
   },
   subLabel: {
     color: colors.textSecondary,
@@ -109,27 +113,29 @@ const styles = StyleSheet.create({
   },
   stepsWrap: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: colors.bgDark,
-    borderRadius: borderRadius.sm,
-    padding: 3,
+    gap: spacing.xs,
+    marginTop: 4,
   },
   stepBtn: {
     flex: 1,
     paddingVertical: 6,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.bgCardElevated,
     alignItems: 'center',
-    borderRadius: borderRadius.sm - 2,
+    borderWidth: 1,
+    borderColor: colors.bgCardBorder,
   },
   stepBtnActive: {
     backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   stepText: {
-    color: colors.textMuted,
+    color: colors.textSecondary,
     fontSize: typography.fontSizes.xs - 1,
-    fontWeight: typography.fontWeights.bold,
+    fontWeight: typography.fontWeights.medium,
   },
   stepTextActive: {
     color: '#FFFFFF',
+    fontWeight: typography.fontWeights.bold,
   },
 });
-

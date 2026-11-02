@@ -36,7 +36,7 @@ function loadEnv() {
 
 if (process.env.NODE_ENV !== 'test') loadEnv();
 
-const { generateMessage, generateScenario, PRIMARY_MODEL } = require('./geminiProxy');
+const { generateMessage, generateScenario, generateDialogue, PRIMARY_MODEL } = require('./geminiProxy');
 
 const PORT = process.env.PORT || 3001;
 const activeApiKey = process.env.GEMINI_API_KEY || '';
@@ -143,7 +143,7 @@ const server = http.createServer((req, res) => {
         return sendJson(res, 403, { success: false, error: 'Chỉ cấu hình khóa bằng biến môi trường máy chủ.' });
       }
 
-      if (pathname === '/api/ai/message' || pathname === '/api/ai/scenario') {
+      if (pathname === '/api/ai/message' || pathname === '/api/ai/scenario' || pathname === '/api/ai/dialogue') {
         if (Date.now() > dailyReset) { dailyCount = 0; dailyReset = Date.now() + 86400000; }
         if (inFlight >= 3 || dailyCount >= DAILY_LIMIT) return sendJson(res, 429, { success: false, code: 'RATE_LIMIT', error: 'Máy chủ đã đạt giới hạn sử dụng. Vui lòng thử lại sau.' });
         dailyCount++; inFlight++;
@@ -189,6 +189,30 @@ const server = http.createServer((req, res) => {
           return sendJson(res, 200, result);
         } catch (error) {
           console.error('[AI2 Error]:', error.message);
+          const status = error.code === 'RATE_LIMIT' ? 429 : error.code === 'INVALID_API_KEY' ? 502 : 400;
+          return sendJson(res, status, {
+            success: false,
+            error: error.message,
+            code: error.code || 'GENERATION_ERROR',
+          });
+        }
+      }
+
+      // 5. POST /api/ai/dialogue (AI3 - Dynamic Roleplay Dialogue)
+      if (pathname === '/api/ai/dialogue') {
+        try {
+          if (!activeApiKey) {
+            return sendJson(res, 401, {
+              success: false,
+              code: 'MISSING_API_KEY',
+              error: 'Chưa cấu hình GEMINI_API_KEY trên máy chủ proxy. Vui lòng thiết lập biến môi trường GEMINI_API_KEY.',
+            });
+          }
+          const { callerName, callerRole, scenarioTitle, category, context } = body;
+          const result = await generateDialogue(activeApiKey, { callerName, callerRole, scenarioTitle, category, context });
+          return sendJson(res, 200, result);
+        } catch (error) {
+          console.error('[AI3 Dialogue Error]:', error.message);
           const status = error.code === 'RATE_LIMIT' ? 429 : error.code === 'INVALID_API_KEY' ? 502 : 400;
           return sendJson(res, status, {
             success: false,

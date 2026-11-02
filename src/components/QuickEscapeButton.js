@@ -2,14 +2,19 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { colors, typography, spacing, borderRadius } from '../theme/colors';
 
-export default function QuickEscapeButton({ onPress, isScheduled, remainingSeconds, onCancelSchedule }) {
+export default function QuickEscapeButton({
+  onPress,
+  isScheduled,
+  remainingSeconds,
+  onCancelSchedule,
+}) {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.05,
+          toValue: 1.03,
           duration: 900,
           useNativeDriver: true,
         }),
@@ -32,9 +37,15 @@ export default function QuickEscapeButton({ onPress, isScheduled, remainingSecon
           <Text style={styles.countdownText}>
             Đổ chuông sau: <Text style={styles.countdownHighlight}>{remainingSeconds}s</Text>
           </Text>
-          <Text style={styles.scheduledSub}>Giữ app mở để đổ chuông; ở nền, chạm thông báo để nhận cuộc gọi.</Text>
+          <Text style={styles.scheduledSub}>
+            Giữ ứng dụng để đổ chuông; ở nền, chạm thông báo để nhận cuộc gọi.
+          </Text>
         </View>
-        <TouchableOpacity style={styles.cancelButton} onPress={onCancelSchedule} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.cancelButton}
+          onPress={onCancelSchedule}
+          activeOpacity={0.8}
+        >
           <Text style={styles.cancelButtonText}>Hủy hẹn giờ</Text>
         </TouchableOpacity>
       </View>
@@ -42,34 +53,40 @@ export default function QuickEscapeButton({ onPress, isScheduled, remainingSecon
   }
 
   return (
-    <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-      <TouchableOpacity style={styles.quickButton} onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.85}
+      accessibilityRole="button"
+    >
+      <Animated.View style={[styles.quickButton, { transform: [{ scale: pulseAnim }] }]}>
         <View style={styles.iconCircle}>
           <Text style={styles.iconText}>⚡</Text>
         </View>
         <View style={styles.textWrap}>
           <Text style={styles.quickTitle}>QUICK ESCAPE (1-CHẠM)</Text>
-          <Text style={styles.quickSubtitle}>Kích hoạt cuộc gọi mô phỏng khẩn cấp tức thì</Text>
+          <Text style={styles.quickSubtitle}>
+            Kích hoạt cuộc gọi mô phỏng khẩn cấp tức thì
+          </Text>
         </View>
         <Text style={styles.chevron}>→</Text>
-      </TouchableOpacity>
-    </Animated.View>
+      </Animated.View>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   quickButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: '#DC2626', // High-priority phone emergency crimson/red
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.md + 4,
     paddingHorizontal: spacing.lg,
     borderRadius: borderRadius.lg,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.45,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 6,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
@@ -84,31 +101,32 @@ const styles = StyleSheet.create({
   },
   iconText: {
     fontSize: 22,
+    color: '#FFFFFF',
   },
   textWrap: {
     flex: 1,
   },
   quickTitle: {
     color: '#FFFFFF',
-    fontSize: typography.fontSizes.md,
+    fontSize: typography.fontSizes.md + 1,
     fontWeight: typography.fontWeights.extraBold,
     letterSpacing: 0.5,
   },
   quickSubtitle: {
-    color: 'rgba(255, 255, 255, 0.85)',
+    color: 'rgba(255, 255, 255, 0.9)',
     fontSize: typography.fontSizes.xs,
     marginTop: 2,
   },
   chevron: {
     color: '#FFFFFF',
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
     marginLeft: spacing.sm,
   },
   scheduledContainer: {
-    backgroundColor: colors.bgCardElevated,
+    backgroundColor: '#1E293B',
     borderRadius: borderRadius.lg,
-    padding: spacing.lg,
+    padding: spacing.md + 4,
     borderWidth: 1.5,
     borderColor: colors.warning,
     flexDirection: 'row',
@@ -136,11 +154,11 @@ const styles = StyleSheet.create({
   },
   scheduledSub: {
     color: colors.textSecondary,
-    fontSize: typography.fontSizes.xs,
+    fontSize: typography.fontSizes.xs - 1,
     marginTop: 2,
   },
   cancelButton: {
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
     borderWidth: 1,
     borderColor: colors.error,
     paddingHorizontal: spacing.md,
@@ -153,4 +171,3 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeights.bold,
   },
 });
-

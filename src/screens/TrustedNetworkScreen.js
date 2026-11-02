@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: spacing.lg,
+    padding: spacing.md,
     paddingBottom: spacing.xxxl * 2,
   },
   introCard: {
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     borderColor: colors.bgCardBorder,
   },
   introTitle: {
-    color: colors.accentLight,
+    color: colors.textPrimary,
     fontSize: typography.fontSizes.xs,
     fontWeight: typography.fontWeights.bold,
     letterSpacing: 0.5,
@@ -266,12 +266,12 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   sosCard: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
     marginBottom: spacing.md,
-    borderWidth: 1.5,
-    borderColor: colors.error,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
   },
   sosTitle: {
     color: colors.error,

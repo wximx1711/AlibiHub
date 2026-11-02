@@ -224,10 +224,69 @@ Quy định chặt chẽ:
   };
 }
 
+/**
+ * AI3 - Roleplay Dynamic Dialogue Generator
+ * Generates context-aware, highly natural multi-turn caller dialogue lines
+ */
+async function generateDialogue(apiKey, { callerName = 'Người gọi', callerRole = 'Người quen', scenarioTitle = 'Việc gấp', category = 'Khẩn cấp', context = '' }) {
+  const prompt = `
+${SYSTEM_GUARDRAIL}
+
+Nhiệm vụ: Tạo lời thoại cuộc gọi mô phỏng thực tế, tự nhiên bằng tiếng Việt cho người gọi đến trong tình huống sau:
+- Tên người gọi: "${callerName}"
+- Vai trò / Quan hệ: "${callerRole}"
+- Tình huống cuộc gọi: "${scenarioTitle}"
+- Thể loại: "${category}"
+${context ? `- Ghi chú ngữ cảnh: "${context}"` : ''}
+
+Yêu cầu:
+1. Xuất ra DUY NHẤT một chuỗi JSON hợp lệ (không kèm markdown ngoài JSON, không bọc trong \`\`\`json) theo đúng cấu trúc:
+{
+  "dialogue": [
+    "Câu thoại 1 mở đầu khi bắt máy (gấp gáp, tự nhiên, xưng hô phù hợp)...",
+    "Câu thoại 2 nêu chi tiết tình huống hoặc yêu cầu giải quyết...",
+    "Câu thoại 3 giục giã hoặc chốt người nghe cần về/rời đi ngay..."
+  ]
+}
+2. "dialogue" là một mảng từ 2 đến 4 câu thoại bằng tiếng Việt đời thường, tự nhiên, không sáo rỗng.
+`;
+
+  const payload = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 1024,
+      responseMimeType: 'application/json',
+    },
+  };
+
+  const result = await callGemini(apiKey, payload);
+  let parsed;
+  try {
+    let clean = result.text.trim();
+    if (clean.startsWith('```json')) clean = clean.replace(/^```json/, '').replace(/```$/, '').trim();
+    else if (clean.startsWith('```')) clean = clean.replace(/^```/, '').replace(/```$/, '').trim();
+    parsed = JSON.parse(clean);
+  } catch (err) {
+    throw new Error('Dữ liệu đối thoại từ AI không đúng định dạng JSON.');
+  }
+
+  if (!parsed || !Array.isArray(parsed.dialogue) || parsed.dialogue.length === 0) {
+    throw new Error('AI không trả về danh sách câu thoại hợp lệ.');
+  }
+
+  return {
+    success: true,
+    dialogue: parsed.dialogue.map(s => String(s).trim()).filter(Boolean),
+    model: result.model,
+  };
+}
+
 module.exports = {
   callGemini,
   generateMessage,
   generateScenario,
+  generateDialogue,
   PRIMARY_MODEL,
 };
 

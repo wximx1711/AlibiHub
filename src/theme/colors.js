@@ -1,37 +1,43 @@
 /**
  * AlibiHub Design System - Colors & Styling Tokens
- * Premium, elegant, youthful visual identity
- * Deep navy / indigo primary palette with refined violet accents
+ * Professional, modern smartphone utility identity
+ * Clean slate/neutral dark theme with reliable utility accents
  */
 
 export const colors = {
-  // Brand Palette
-  primary: '#6366F1', // Indigo accent
-  primaryHover: '#4F46E5',
-  accent: '#8B5CF6', // Refined Violet
-  accentLight: '#C4B5FD',
-  accentGlow: 'rgba(139, 92, 246, 0.25)',
+  // Brand Palette - Clean Utility Blue
+  primary: '#2563EB', // Professional Royal Blue
+  primaryHover: '#1D4ED8',
+  accent: '#38BDF8', // Sky Blue
+  accentLight: '#93C5FD',
+  accentGlow: 'rgba(37, 99, 235, 0.15)',
 
-  // Backgrounds (Deep Navy / Indigo Dark Theme)
-  bgDark: '#0B0F19', // Main screen background
-  bgCard: '#131B2E', // Surface / Card background
-  bgCardElevated: '#1E293B', // Elevated card / Modal background
-  bgCardBorder: '#2A364F', // Subtle card borders
-  bgInput: '#182238', // Input field background
+  // Backgrounds - Professional Neutral Dark Surfaces
+  bgDark: '#0B0F19', // Main background (deep slate/charcoal)
+  bgCard: '#131B2E', // Main surface card
+  bgCardElevated: '#1E293B', // Elevated modal / popover card
+  bgCardBorder: '#233048', // Subtle border
+  bgInput: '#0F172A', // Input background
 
-  // Call Specific Colors
-  callAccept: '#10B981', // Emerald green
-  callAcceptHover: '#059669',
-  callAcceptGlow: 'rgba(16, 185, 129, 0.35)',
-  callDecline: '#EF4444', // Red / Rose
+  // Call Specific Colors (Native Android / iOS inspired)
+  callAccept: '#22C55E', // Phone Green
+  callAcceptHover: '#16A34A',
+  callAcceptGlow: 'rgba(34, 197, 94, 0.25)',
+  callDecline: '#EF4444', // Phone Red
   callDeclineHover: '#DC2626',
-  callDeclineGlow: 'rgba(239, 68, 68, 0.35)',
-  callActive: '#3B82F6', // Blue for active call state
+  callDeclineGlow: 'rgba(239, 68, 68, 0.25)',
+  callActive: '#3B82F6', // Active Call Blue
+
+  // Specific Appearance Styles
+  zaloBlue: '#0068FF', // Zalo signature clean blue
+  zaloBlueDark: '#0052CC',
+  zaloSurface: 'rgba(255, 255, 255, 0.18)',
+  iosDark: '#1C1C1E', // iOS Dark Surface
 
   // Status & Feedback
-  success: '#10B981',
+  success: '#22C55E',
   warning: '#F59E0B',
-  error: '#F43F5E',
+  error: '#EF4444',
   info: '#38BDF8',
 
   // Typography
@@ -40,7 +46,7 @@ export const colors = {
   textMuted: '#64748B', // Slate 500
   textInverse: '#0F172A', // Slate 900
 
-  // Category Badges
+  // Category Badges (Subtle & clean)
   tagWork: '#3B82F6', // Công sở
   tagFamily: '#EC4899', // Gia đình
   tagFriends: '#10B981', // Bạn bè
@@ -55,7 +61,7 @@ export const typography = {
     md: 15,
     lg: 18,
     xl: 22,
-    xxl: 28,
+    xxl: 26,
     display: 34,
   },
   fontWeights: {
@@ -78,10 +84,9 @@ export const spacing = {
 };
 
 export const borderRadius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
+  sm: 6,
+  md: 10,
+  lg: 14,
+  xl: 18,
   pill: 9999,
 };
-

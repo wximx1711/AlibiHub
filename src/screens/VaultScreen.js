@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgDark,
     borderBottomWidth: 1,
     borderBottomColor: colors.bgCardBorder,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
   },
   tabItem: {
     paddingVertical: spacing.md,
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: spacing.lg,
+    padding: spacing.md,
     paddingBottom: spacing.xxxl * 2,
   },
   emptyWrap: {

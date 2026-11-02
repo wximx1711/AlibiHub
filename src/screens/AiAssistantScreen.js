@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgDark,
     borderBottomWidth: 1,
     borderBottomColor: colors.bgCardBorder,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
   },
   tabItem: {
     paddingVertical: spacing.md,
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: spacing.lg,
+    padding: spacing.md,
     paddingBottom: spacing.xxxl * 2,
   },
   introBox: {
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
     borderColor: colors.bgCardBorder,
   },
   introTitle: {
-    color: colors.accentLight,
+    color: colors.textPrimary,
     fontSize: typography.fontSizes.xs,
     fontWeight: typography.fontWeights.bold,
     letterSpacing: 0.5,
@@ -473,9 +473,9 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: colors.bgCard,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.xl,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
     borderWidth: 1,
     borderColor: colors.bgCardBorder,
   },
@@ -572,16 +572,11 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSizes.xs,
   },
   primaryAiBtn: {
-    backgroundColor: colors.accent,
+    backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
     alignItems: 'center',
     marginTop: spacing.md,
-    shadowColor: colors.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 4,
   },
   btnDisabled: {
     opacity: 0.7,
@@ -597,11 +592,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   resultCard: {
-    backgroundColor: colors.bgCardElevated,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
+    backgroundColor: colors.bgCard,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.bgCardBorder,
   },
   resultHeader: {
     flexDirection: 'row',

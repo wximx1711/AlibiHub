@@ -25,6 +25,7 @@ export default function SettingsScreen({
   const [proxyUrl, setProxyUrl] = useState(process.env.EXPO_PUBLIC_AI_PROXY_URL || settings.proxyUrl || '');
   const [vibrationEnabled, setVibrationEnabled] = useState(settings.vibrationEnabled ?? true);
   const [ringtoneType, setRingtoneType] = useState(settings.ringtoneType || 'classic');
+  const [callAppearance, setCallAppearance] = useState(settings.callAppearance || 'android');
 
   // Server health test state
   const [isCheckingServer, setIsCheckingServer] = useState(false);
@@ -57,6 +58,17 @@ export default function SettingsScreen({
   const handleChangeRingtone = async (type) => {
     try { await onSaveSettings({ ringtoneType: type }); setRingtoneType(type); }
     catch (err) { Alert.alert('Không thể lưu', err.message); }
+  };
+
+  const handleChangeAppearance = async (appr) => {
+    try {
+      await onSaveSettings({ callAppearance: appr });
+      setCallAppearance(appr);
+      const label = appr === 'android' ? 'Android Gốc' : appr === 'ios' ? 'iOS Phone' : appr === 'zalo' ? 'Zalo Blue' : 'Messenger';
+      Alert.alert('Giao diện cuộc gọi', `Đã chọn giao diện: ${label}`);
+    } catch (err) {
+      Alert.alert('Không thể lưu', err.message);
+    }
   };
 
   const handleConfirmReset = async () => {
@@ -158,6 +170,58 @@ export default function SettingsScreen({
 
         {/* ======================================================== */}
         {/* 2. AUDIO & SIMULATION PREFERENCES */}
+        {/* ======================================================== */}
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionHeader}>PHONG CÁCH GIAO DIỆN CUỘC GỌI</Text>
+          <Text style={styles.sectionSub}>
+            Lựa chọn giao diện mô phỏng cuộc gọi hiển thị trên màn hình:
+          </Text>
+
+          <View style={styles.appearanceList}>
+            {[
+              { id: 'android', label: 'Android Gốc (Mặc định)', desc: 'Nền tối charcoal, nút nghe xanh/đỏ chuẩn Android' },
+              { id: 'ios', label: 'iOS Phone (iPhone)', desc: 'Phong cách tối giản sang trọng của iOS' },
+              { id: 'zalo', label: 'Cuộc gọi Zalo (Xanh dương)', desc: 'Nền xanh đặc trưng, giao diện Zalo OA' },
+              { id: 'messenger', label: 'Cuộc gọi Messenger (Meta)', desc: 'Nền mờ tối, nút chấp nhận xanh Messenger' },
+            ].map((appr) => {
+              const isSelected = callAppearance === appr.id;
+              return (
+                <TouchableOpacity
+                  key={appr.id}
+                  style={[
+                    styles.appearanceOption,
+                    isSelected && styles.appearanceOptionActive,
+                  ]}
+                  onPress={() => handleChangeAppearance(appr.id)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.appearanceInfo}>
+                    <Text
+                      style={[
+                        styles.appearanceLabel,
+                        isSelected && styles.appearanceLabelActive,
+                      ]}
+                    >
+                      {appr.label}
+                    </Text>
+                    <Text style={styles.appearanceDesc}>{appr.desc}</Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.appearanceRadio,
+                      isSelected && styles.appearanceRadioActive,
+                    ]}
+                  >
+                    {isSelected ? '●' : '○'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* ======================================================== */}
+        {/* 3. AUDIO & VIBRATION */}
         {/* ======================================================== */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionHeader}>CÀI ĐẶT ÂM THANH & RUNG</Text>
@@ -389,6 +453,48 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: typography.fontSizes.xs - 1,
     marginTop: 2,
+  },
+  appearanceList: {
+    gap: spacing.xs + 2,
+    marginTop: spacing.xs,
+  },
+  appearanceOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.bgDark,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.bgCardBorder,
+  },
+  appearanceOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.bgCardElevated,
+  },
+  appearanceInfo: {
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  appearanceLabel: {
+    color: colors.textPrimary,
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.semiBold,
+  },
+  appearanceLabelActive: {
+    color: colors.accent,
+  },
+  appearanceDesc: {
+    color: colors.textSecondary,
+    fontSize: typography.fontSizes.xs - 1,
+    marginTop: 2,
+  },
+  appearanceRadio: {
+    fontSize: 18,
+    color: colors.textMuted,
+  },
+  appearanceRadioActive: {
+    color: colors.primary,
   },
   ringtoneOptions: {
     flexDirection: 'row',

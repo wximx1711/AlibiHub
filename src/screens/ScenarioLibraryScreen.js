@@ -6,6 +6,7 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
+  SafeAreaView,
 } from 'react-native';
 import { colors, typography, spacing, borderRadius } from '../theme/colors';
 import Header from '../components/Header';
@@ -40,10 +41,10 @@ export default function ScenarioLibraryScreen({
   });
 
   return (
-    <View style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea}>
       <Header
         title="Thư viện Kịch bản"
-        subtitle="Kho kịch bản tình huống thực tế"
+        subtitle="Kho kịch bản tình huống thực tế (FE2)"
         rightAction={onCreateCustom}
         rightLabel="+ Tạo mới"
       />
@@ -106,7 +107,7 @@ export default function ScenarioLibraryScreen({
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -116,8 +117,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgDark,
   },
   filterSection: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
     backgroundColor: colors.bgDark,
     borderBottomWidth: 1,
     borderBottomColor: colors.bgCardBorder,
@@ -176,7 +177,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: spacing.lg,
+    padding: spacing.md,
     paddingBottom: spacing.xxxl * 2,
   },
   emptyWrap: {
@@ -202,4 +203,3 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 });
-

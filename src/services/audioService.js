@@ -63,13 +63,24 @@ class AudioSimulationService {
     this.setAmbientVolume(this.ambientVolume);
   }
   async setSpeaker(value) { await setAudioModeAsync({ shouldRouteThroughEarpiece: !value }); }
-  speakDialogueLine(text, onEnd) {
+  speakDialogueLine(text, onEnd, voiceProfile = null) {
     Speech.stop();
     if (!text || this.isMuted || this.voiceVolume === 0) { onEnd?.(); return; }
     this.speaking = true; this.setAmbientVolume(this.ambientVolume);
     const finish = () => { this.speaking = false; this.setAmbientVolume(this.ambientVolume); onEnd?.(); };
-    Speech.speak(text, { language: 'vi-VN', rate: 0.95, volume: this.voiceVolume, onDone: finish, onStopped: finish,
-      onError: () => { finish(); Alert.alert('Giọng đọc', 'Không thể phát lời thoại. Hãy cài giọng Tiếng Việt trong cài đặt chuyển văn bản thành giọng nói của Android để dùng offline.'); },
+    const pitch = typeof voiceProfile?.pitch === 'number' ? voiceProfile.pitch : 1.0;
+    const rate = typeof voiceProfile?.rate === 'number' ? voiceProfile.rate : 0.95;
+    Speech.speak(text, {
+      language: 'vi-VN',
+      pitch,
+      rate,
+      volume: this.voiceVolume,
+      onDone: finish,
+      onStopped: finish,
+      onError: () => {
+        finish();
+        Alert.alert('Giọng đọc', 'Không thể phát lời thoại. Hãy cài giọng Tiếng Việt trong cài đặt chuyển văn bản thành giọng nói của Android để dùng offline.');
+      },
     });
   }
   stopAll() { this.stopIncomingCallAlert(); this.stopAmbientSound(); Speech.stop(); this.isMuted = false; this.speaking = false; }
