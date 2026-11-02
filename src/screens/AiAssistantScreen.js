@@ -616,7 +616,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeights.bold,
   },
   resultCategory: {
-    color: colors.accentLight,
+    color: colors.primary,
     fontSize: typography.fontSizes.xs,
     fontWeight: typography.fontWeights.semiBold,
   },
@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeights.semiBold,
   },
   dialogueSectionTitle: {
-    color: colors.accentLight,
+    color: colors.secondary,
     fontSize: typography.fontSizes.xs,
     fontWeight: typography.fontWeights.bold,
     marginBottom: spacing.xs,
@@ -771,7 +771,7 @@ const styles = StyleSheet.create({
     borderColor: colors.bgCardBorder,
   },
   shareBtnText: {
-    color: colors.accentLight,
+    color: colors.primary,
     fontSize: typography.fontSizes.xs,
     fontWeight: typography.fontWeights.medium,
   },

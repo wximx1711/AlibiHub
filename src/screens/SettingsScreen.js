@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
     borderColor: colors.bgCardBorder,
   },
   sectionHeader: {
-    color: colors.accentLight,
+    color: colors.primary,
     fontSize: typography.fontSizes.xs,
     fontWeight: typography.fontWeights.bold,
     letterSpacing: 0.8,
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.sm,
   },
   checkServerText: {
-    color: colors.accentLight,
+    color: colors.primary,
     fontSize: typography.fontSizes.xs - 1,
     fontWeight: typography.fontWeights.bold,
   },
@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeights.semiBold,
   },
   appearanceLabelActive: {
-    color: colors.accent,
+    color: colors.primary,
   },
   appearanceDesc: {
     color: colors.textSecondary,

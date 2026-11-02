@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     borderColor: colors.bgCardBorder,
   },
   messageBtnText: {
-    color: colors.accentLight,
+    color: colors.primary,
     fontSize: typography.fontSizes.xs,
     fontWeight: typography.fontWeights.semiBold,
   },

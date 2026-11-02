@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   historyPhone: {
-    color: colors.accentLight,
+    color: colors.primary,
     fontSize: typography.fontSizes.xs - 1,
     marginTop: 2,
   },

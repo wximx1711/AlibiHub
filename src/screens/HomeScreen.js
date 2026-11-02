@@ -58,7 +58,7 @@ export default function HomeScreen({
               onPress={() => onNavigateTab('call_setup')}
               activeOpacity={0.8}
             >
-              <View style={[styles.actionIconWrap, { backgroundColor: 'rgba(37, 99, 235, 0.15)' }]}>
+              <View style={[styles.actionIconWrap, { backgroundColor: colors.primaryLight }]}>
                 <Text style={styles.actionIcon}>📞</Text>
               </View>
               <View style={styles.actionTextWrap}>
@@ -72,7 +72,7 @@ export default function HomeScreen({
               onPress={() => onNavigateTab('call_setup')}
               activeOpacity={0.8}
             >
-              <View style={[styles.actionIconWrap, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+              <View style={[styles.actionIconWrap, { backgroundColor: colors.secondaryLight }]}>
                 <Text style={styles.actionIcon}>⏱️</Text>
               </View>
               <View style={styles.actionTextWrap}>
@@ -237,6 +237,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.bgCardBorder,
+    shadowColor: '#352A21',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   actionIconWrap: {
     width: 40,
@@ -270,12 +275,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.bgCardBorder,
+    shadowColor: '#352A21',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   aiIconBubble: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(37, 99, 235, 0.15)',
+    backgroundColor: colors.secondaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,

@@ -14,7 +14,7 @@ export default function QuickEscapeButton({
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.03,
+          toValue: 1.02,
           duration: 900,
           useNativeDriver: true,
         }),
@@ -55,7 +55,7 @@ export default function QuickEscapeButton({
   return (
     <TouchableOpacity
       onPress={onPress}
-      activeOpacity={0.85}
+      activeOpacity={0.88}
       accessibilityRole="button"
     >
       <Animated.View style={[styles.quickButton, { transform: [{ scale: pulseAnim }] }]}>
@@ -76,19 +76,19 @@ export default function QuickEscapeButton({
 
 const styles = StyleSheet.create({
   quickButton: {
-    backgroundColor: '#DC2626', // High-priority phone emergency crimson/red
+    backgroundColor: colors.primary, // Terracotta burnt orange
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.md + 4,
     paddingHorizontal: spacing.lg,
     borderRadius: borderRadius.lg,
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   iconCircle: {
     width: 44,
@@ -101,43 +101,48 @@ const styles = StyleSheet.create({
   },
   iconText: {
     fontSize: 22,
-    color: '#FFFFFF',
+    color: '#FFFDF8',
   },
   textWrap: {
     flex: 1,
   },
   quickTitle: {
-    color: '#FFFFFF',
+    color: '#FFFDF8',
     fontSize: typography.fontSizes.md + 1,
-    fontWeight: typography.fontWeights.extraBold,
+    fontWeight: typography.fontWeights.bold,
     letterSpacing: 0.5,
   },
   quickSubtitle: {
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: 'rgba(255, 253, 248, 0.9)',
     fontSize: typography.fontSizes.xs,
     marginTop: 2,
   },
   chevron: {
-    color: '#FFFFFF',
+    color: '#FFFDF8',
     fontSize: 20,
     fontWeight: 'bold',
     marginLeft: spacing.sm,
   },
   scheduledContainer: {
-    backgroundColor: '#1E293B',
+    backgroundColor: colors.bgCard,
     borderRadius: borderRadius.lg,
     padding: spacing.md + 4,
     borderWidth: 1.5,
-    borderColor: colors.warning,
+    borderColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    shadowColor: '#352A21',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
   scheduledInfo: {
     flex: 1,
   },
   scheduledBadge: {
-    color: colors.warning,
+    color: colors.primary,
     fontSize: typography.fontSizes.xs,
     fontWeight: typography.fontWeights.bold,
     letterSpacing: 0.8,
@@ -149,7 +154,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   countdownHighlight: {
-    color: colors.warning,
+    color: colors.primary,
     fontSize: typography.fontSizes.xl,
   },
   scheduledSub: {
@@ -158,7 +163,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   cancelButton: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: colors.errorLight,
     borderWidth: 1,
     borderColor: colors.error,
     paddingHorizontal: spacing.md,

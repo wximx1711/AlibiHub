@@ -397,8 +397,8 @@ function AppContent() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B0F19" />
-      <ExpoStatusBar style="light" />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.bgDark} />
+      <ExpoStatusBar style="dark" />
 
       {/* Main Tab Content */}
       <View style={styles.mainContent}>
@@ -567,10 +567,10 @@ const styles = StyleSheet.create({
   },
   bottomNav: {
     flexDirection: 'row',
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.bgCard,
     borderTopWidth: 1,
-    borderTopColor: '#1E293B',
-    paddingVertical: 6,
+    borderTopColor: colors.bgCardBorder,
+    paddingVertical: 8,
     paddingHorizontal: spacing.sm,
     justifyContent: 'space-around',
     alignItems: 'center',
@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
   },
   navLabel: {
     color: colors.textSecondary,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: typography.fontWeights.medium,
   },
   navLabelActive: {

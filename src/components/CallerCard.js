@@ -18,7 +18,7 @@ export default function CallerCard({
       <View
         style={[
           styles.avatarCircle,
-          { backgroundColor: caller.avatarBg || '#2A364F' },
+          { backgroundColor: caller.avatarBg || colors.secondary },
         ]}
       >
         {caller.avatarUrl ? (

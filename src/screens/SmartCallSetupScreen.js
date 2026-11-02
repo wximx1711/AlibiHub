@@ -48,6 +48,7 @@ export default function SmartCallSetupScreen({
   const [callAppearance, setCallAppearance] = useState(
     initialConfig?.callAppearance || 'android'
   );
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const appearanceOptions = [
     { id: 'android', label: 'Android', icon: '🤖' },
@@ -359,75 +360,95 @@ export default function SmartCallSetupScreen({
           ) : null}
         </View>
 
-        {/* Ambient Sound Selection */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>3. ÂM THANH BỐI CẢNH (AMBIENT SOUND)</Text>
-          <View style={styles.ambientList}>
-            {AMBIENT_PRESETS.map((preset) => {
-              const isSelected = ambientSound === preset.id;
-              return (
-                <TouchableOpacity
-                  key={preset.id}
-                  style={[styles.ambientItem, isSelected && styles.ambientItemSelected]}
-                  onPress={() => setAmbientSound(preset.id)}
-                >
-                  <View style={styles.ambientInfo}>
-                    <Text style={[styles.ambientLabel, isSelected && styles.ambientLabelSelected]}>
-                      {preset.label}
-                    </Text>
-                    <Text style={styles.ambientDesc}>{preset.description}</Text>
-                  </View>
-                  <Text style={styles.checkIcon}>{isSelected ? '✓' : '○'}</Text>
-                </TouchableOpacity>
-              );
-            })}
+        {/* Advanced Options Toggle (Progressive Disclosure) */}
+        <TouchableOpacity
+          style={styles.advancedToggleBar}
+          onPress={() => setShowAdvanced(!showAdvanced)}
+          activeOpacity={0.8}
+        >
+          <View style={styles.advancedToggleTextWrap}>
+            <Text style={styles.advancedToggleTitle}>
+              {showAdvanced ? '▼ Thu gọn tùy chọn nâng cao' : '▶ Tùy chọn nâng cao (Âm nền & Thoại)'}
+            </Text>
+            <Text style={styles.advancedToggleSub}>
+              {showAdvanced ? 'Đang mở bộ trộn âm lượng và kịch bản thoại' : 'Chạm để tùy chỉnh âm thanh bối cảnh & câu thoại'}
+            </Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
-        {/* Audio Volume Mixing (Independent sliders) */}
-        <AudioPlayerControl
-          voiceVolume={voiceVolume}
-          ambientVolume={ambientVolume}
-          onVoiceVolumeChange={setVoiceVolume}
-          onAmbientVolumeChange={setAmbientVolume}
-        />
-
-        {/* Multi-step Voice Dialogue */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>4. ĐOẠN THOẠI KỊCH BẢN (MULTI-STEP DIALOGUE)</Text>
-          <Text style={styles.sectionSubtitle}>
-            Lời thoại sẽ phát theo từng câu khi bạn nhận cuộc gọi mô phỏng:
-          </Text>
-
-          {dialogue.map((line, idx) => (
-            <View key={`line_${idx}`} style={styles.dialogueRow}>
-              <View style={styles.stepNumCircle}>
-                <Text style={styles.stepNumText}>{idx + 1}</Text>
+        {showAdvanced ? (
+          <>
+            {/* Ambient Sound Selection */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>4. ÂM THANH BỐI CẢNH (AMBIENT SOUND)</Text>
+              <View style={styles.ambientList}>
+                {AMBIENT_PRESETS.map((preset) => {
+                  const isSelected = ambientSound === preset.id;
+                  return (
+                    <TouchableOpacity
+                      key={preset.id}
+                      style={[styles.ambientItem, isSelected && styles.ambientItemSelected]}
+                      onPress={() => setAmbientSound(preset.id)}
+                    >
+                      <View style={styles.ambientInfo}>
+                        <Text style={[styles.ambientLabel, isSelected && styles.ambientLabelSelected]}>
+                          {preset.label}
+                        </Text>
+                        <Text style={styles.ambientDesc}>{preset.description}</Text>
+                      </View>
+                      <Text style={styles.checkIcon}>{isSelected ? '✓' : '○'}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-              <TextInput style={[styles.dialogueLineText, { flex: 1 }]} value={line} onChangeText={value => setDialogue(dialogue.map((item, i) => i === idx ? value : item))} multiline maxLength={500} />
-              <TouchableOpacity
-                style={styles.removeLineBtn}
-                onPress={() => handleRemoveDialogueLine(idx)}
-              >
-                <Text style={styles.removeLineText}>✕</Text>
-              </TouchableOpacity>
             </View>
-          ))}
 
-          {/* Add new line */}
-          <View style={styles.addLineBox}>
-            <TextInput
-              style={styles.addLineInput}
-              value={newDialogueLine}
-              onChangeText={setNewDialogueLine}
-              placeholder="Thêm câu thoại mới..."
-              placeholderTextColor={colors.textMuted}
+            {/* Audio Volume Mixing (Independent sliders) */}
+            <AudioPlayerControl
+              voiceVolume={voiceVolume}
+              ambientVolume={ambientVolume}
+              onVoiceVolumeChange={setVoiceVolume}
+              onAmbientVolumeChange={setAmbientVolume}
             />
-            <TouchableOpacity style={styles.addLineBtn} onPress={handleAddDialogueLine}>
-              <Text style={styles.addLineBtnText}>+ Thêm</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+
+            {/* Multi-step Voice Dialogue */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>5. ĐOẠN THOẠI KỊCH BẢN (MULTI-STEP DIALOGUE)</Text>
+              <Text style={styles.sectionSubtitle}>
+                Lời thoại sẽ phát theo từng câu khi bạn nhận cuộc gọi mô phỏng:
+              </Text>
+
+              {dialogue.map((line, idx) => (
+                <View key={`line_${idx}`} style={styles.dialogueRow}>
+                  <View style={styles.stepNumCircle}>
+                    <Text style={styles.stepNumText}>{idx + 1}</Text>
+                  </View>
+                  <TextInput style={[styles.dialogueLineText, { flex: 1 }]} value={line} onChangeText={value => setDialogue(dialogue.map((item, i) => i === idx ? value : item))} multiline maxLength={500} />
+                  <TouchableOpacity
+                    style={styles.removeLineBtn}
+                    onPress={() => handleRemoveDialogueLine(idx)}
+                  >
+                    <Text style={styles.removeLineText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              {/* Add new line */}
+              <View style={styles.addLineBox}>
+                <TextInput
+                  style={styles.addLineInput}
+                  value={newDialogueLine}
+                  onChangeText={setNewDialogueLine}
+                  placeholder="Thêm câu thoại mới..."
+                  placeholderTextColor={colors.textMuted}
+                />
+                <TouchableOpacity style={styles.addLineBtn} onPress={handleAddDialogueLine}>
+                  <Text style={styles.addLineBtnText}>+ Thêm</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </>
+        ) : null}
 
         {/* Actions */}
         <View style={styles.actionButtons}>
@@ -472,11 +493,32 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   sectionTitle: {
-    color: colors.accentLight,
+    color: colors.primary,
     fontSize: typography.fontSizes.xs,
-    fontWeight: typography.fontWeights.extraBold,
+    fontWeight: typography.fontWeights.bold,
     letterSpacing: 0.8,
     marginBottom: spacing.sm,
+  },
+  advancedToggleBar: {
+    backgroundColor: colors.bgCard,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.bgCardBorder,
+  },
+  advancedToggleTextWrap: {
+    flex: 1,
+  },
+  advancedToggleTitle: {
+    color: colors.primary,
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.bold,
+  },
+  advancedToggleSub: {
+    color: colors.textSecondary,
+    fontSize: typography.fontSizes.xs - 1,
+    marginTop: 2,
   },
   sectionSubtitle: {
     color: colors.textSecondary,
@@ -658,7 +700,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeights.semiBold,
   },
   ambientLabelSelected: {
-    color: colors.accentLight,
+    color: colors.primary,
   },
   ambientDesc: {
     color: colors.textSecondary,
@@ -685,13 +727,13 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: colors.primary + '35',
+    backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.sm,
   },
   stepNumText: {
-    color: colors.accentLight,
+    color: colors.primary,
     fontSize: typography.fontSizes.xs,
     fontWeight: typography.fontWeights.bold,
   },
@@ -734,7 +776,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   addLineBtnText: {
-    color: colors.accentLight,
+    color: colors.primary,
     fontSize: typography.fontSizes.xs,
     fontWeight: typography.fontWeights.bold,
   },
