@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Share,
@@ -10,7 +10,9 @@ import {
   TextInput,
   Modal,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
+import * as Location from 'expo-location';
 import { colors, typography, spacing, borderRadius } from '../theme/colors';
 import Header from '../components/Header';
 
@@ -20,9 +22,8 @@ export default function TrustedNetworkScreen({
   onDeleteContact,
   onBack,
 }) {
-  const [isSharingLocation, setIsSharingLocation] = useState(false);
-  const [sharingSeconds, setSharingSeconds] = useState(900); // 15 mins
-  const [currentCoords, setCurrentCoords] = useState(null); // { lat, lng }
+  const [currentCoords, setCurrentCoords] = useState(null); // { lat, lng, timestamp }
+  const [isLocating, setIsLocating] = useState(false);
   const [sosSent, setSosSent] = useState(false);
 
   // Add Contact Modal
@@ -31,89 +32,89 @@ export default function TrustedNetworkScreen({
   const [relationship, setRelationship] = useState('');
   const [phone, setPhone] = useState('');
 
-  // Location sharing countdown timer (15 mins with auto-expiration)
-  useEffect(() => {
-    let timer = null;
-    if (isSharingLocation && sharingSeconds > 0) {
-      timer = setInterval(() => {
-        setSharingSeconds((prev) => {
-          if (prev <= 1) {
-            setIsSharingLocation(false);
-            setCurrentCoords(null);
-            Alert.alert('Hết hạn chia sẻ vị trí', 'Thời hạn chia sẻ vị trí 15 phút đã kết thúc.');
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [isSharingLocation, sharingSeconds]);
+  // Native GPS Location Retrieval using expo-location
+  const handleGetLocation = async () => {
+    setIsLocating(true);
+    try {
+      // 1. Request foreground permissions
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Chưa cấp quyền vị trí',
+          'Vui lòng cấp quyền truy cập vị trí trong Cài đặt thiết bị để sử dụng tính năng GPS cứu hộ. Bạn vẫn có thể mở trực tiếp Google Maps.',
+          [
+            { text: 'Đóng', style: 'cancel' },
+            {
+              text: 'Mở Google Maps',
+              onPress: () => Linking.openURL('https://www.google.com/maps').catch(() => {}),
+            },
+          ]
+        );
+        return;
+      }
 
-  const formatTimer = (s) => {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${m}:${sec < 10 ? '0' : ''}${sec}`;
-  };
+      // 2. Query real device GPS location
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
 
-  // Real location retrieval & sharing flow
-  const handleToggleLocationSharing = async () => {
-    if (isSharingLocation) {
-      // User manual revocation
-      setIsSharingLocation(false);
-      setCurrentCoords(null);
-      Alert.alert('Đã dừng chia sẻ', 'Đã hủy quyền truy cập vị trí và dừng chia sẻ.');
-      return;
-    }
+      const lat = loc.coords.latitude;
+      const lng = loc.coords.longitude;
+      const nowStr = new Date().toLocaleTimeString('vi-VN');
 
-    // Try web / browser geolocation if available
-    if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          setCurrentCoords({ lat, lng });
-          setIsSharingLocation(true);
-          setSharingSeconds(900);
+      setCurrentCoords({ lat, lng, timestamp: nowStr });
+      const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
 
-          const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-          try {
-            await Share.share({
-              message: `[AlibiHub SOS] Vị trí của mình hiện tại: ${mapsUrl} (Chia sẻ có hiệu lực trong 15 phút)`,
-              title: 'Vị trí hỗ trợ khẩn cấp',
-            });
-          } catch (_) {}
-        },
-        (error) => {
-          // If denied or unavailable, offer direct Google Maps opening and explain Phase 2 constraint
-          Alert.alert(
-            'Quyền truy cập vị trí',
-            'Không thể lấy vị trí tự động (' + (error.message || 'Chưa cấp quyền') + '). Bạn có thể mở Google Maps hoặc chia sẻ tin nhắn nhờ hỗ trợ.',
-            [
-              { text: 'Đóng', style: 'cancel' },
-              {
-                text: 'Mở Google Maps',
-                onPress: () => Linking.openURL('https://www.google.com/maps').catch(() => {}),
-              },
-            ]
-          );
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
-      );
-    } else {
       Alert.alert(
-        'Chia sẻ GPS (Phase 2)',
-        'Ứng dụng đang hoạt động ở chế độ độc lập. Bạn có thể mở Google Maps hoặc gửi tin nhắn khẩn cấp qua danh bạ tin cậy.',
+        'Đã xác định vị trí GPS',
+        `Tọa độ: ${lat.toFixed(5)}, ${lng.toFixed(5)}\nThời điểm: ${nowStr}\n\nBạn có thể mở xem trên Google Maps hoặc gửi tin nhắn khẩn cấp kèm vị trí này.`,
         [
           { text: 'Đóng', style: 'cancel' },
           {
             text: 'Mở Google Maps',
-            onPress: () => Linking.openURL('https://www.google.com/maps').catch(() => {}),
+            onPress: () => Linking.openURL(mapsUrl).catch(() => {}),
           },
         ]
       );
+    } catch (err) {
+      // Fallback attempt via browser geolocation if running in web
+      if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            const nowStr = new Date().toLocaleTimeString('vi-VN');
+            setCurrentCoords({ lat, lng, timestamp: nowStr });
+          },
+          () => {
+            Alert.alert(
+              'Không thể lấy vị trí',
+              'Thiết bị chưa bật GPS hoặc chưa cấp quyền. Bạn có thể mở Google Maps thủ công.',
+              [
+                { text: 'Đóng', style: 'cancel' },
+                {
+                  text: 'Mở Google Maps',
+                  onPress: () => Linking.openURL('https://www.google.com/maps').catch(() => {}),
+                },
+              ]
+            );
+          }
+        );
+      } else {
+        Alert.alert(
+          'Không thể lấy vị trí',
+          `${err.message || 'Thiết bị chưa bật GPS'}. Bạn có thể mở Google Maps thủ công.`,
+          [
+            { text: 'Đóng', style: 'cancel' },
+            {
+              text: 'Mở Google Maps',
+              onPress: () => Linking.openURL('https://www.google.com/maps').catch(() => {}),
+            },
+          ]
+        );
+      }
+    } finally {
+      setIsLocating(false);
     }
   };
 
@@ -128,10 +129,11 @@ export default function TrustedNetworkScreen({
   const handleSendSos = async () => {
     try {
       const locationPart = currentCoords
-        ? `\nVị trí của mình: https://www.google.com/maps?q=${currentCoords.lat},${currentCoords.lng}`
+        ? `\n📍 Tọa độ GPS của mình (${currentCoords.timestamp}): https://www.google.com/maps?q=${currentCoords.lat},${currentCoords.lng}`
         : '';
       await Share.share({
         message: `[AlibiHub Khẩn cấp] Mình đang cần bạn hỗ trợ gấp. Vui lòng gọi lại cho mình ngay khi có thể!${locationPart}`,
+        title: 'Lời nhờ hỗ trợ khẩn cấp',
       });
       setSosSent(true);
       setTimeout(() => setSosSent(false), 5000);
@@ -182,7 +184,7 @@ export default function TrustedNetworkScreen({
         <View style={styles.sosCard}>
           <Text style={styles.sosTitle}>GỬI YÊU CẦU HỖ TRỢ KHẨN CẤP (SOS)</Text>
           <Text style={styles.sosDesc}>
-            Gửi nhanh thông điệp cần can thiệp tới bạn bè tin cậy qua Zalo, Messenger hoặc SMS.
+            Gửi nhanh thông điệp cần can thiệp tới bạn bè tin cậy qua Zalo, Messenger hoặc SMS. Tự động đính kèm liên kết Google Maps nếu đã lấy GPS.
           </Text>
           <TouchableOpacity
             style={[styles.sosBtn, sosSent && styles.sosBtnSent]}
@@ -195,41 +197,50 @@ export default function TrustedNetworkScreen({
           </TouchableOpacity>
         </View>
 
-        {/* Temporary Location Sharing (GPS) */}
+        {/* Real GPS Location Snapshot */}
         <View style={styles.locationCard}>
           <View style={styles.locationHeader}>
-            <Text style={styles.locationTitle}>CHIA SẺ VỊ TRÍ KHẨN CẤP (GPS)</Text>
-            {isSharingLocation ? (
+            <Text style={styles.locationTitle}>ĐỊNH VỊ KHẨN CẤP (GPS NATIVE)</Text>
+            {currentCoords ? (
               <View style={styles.liveBadge}>
-                <Text style={styles.liveBadgeText}>● ĐANG CHIA SẺ ({formatTimer(sharingSeconds)})</Text>
+                <Text style={styles.liveBadgeText}>● ĐÃ CÓ TỌA ĐỘ GPS</Text>
               </View>
             ) : null}
           </View>
 
           <Text style={styles.locationSub}>
-            Lấy tọa độ vị trí hiện tại và tạo liên kết Google Maps gửi cho người thân. Tự động hết hạn sau 15 phút hoặc thu hồi bất kỳ lúc nào.
+            Lấy tọa độ thực từ cảm biến GPS của thiết bị qua expo-location và tạo liên kết Google Maps để gửi cho người thân.
           </Text>
 
           {currentCoords ? (
             <View style={styles.gpsInfoBox}>
               <Text style={styles.gpsCoordinates}>
-                📍 Tọa độ: {currentCoords.lat.toFixed(5)}, {currentCoords.lng.toFixed(5)}
+                📍 Tọa độ GPS: {currentCoords.lat.toFixed(5)}, {currentCoords.lng.toFixed(5)}
               </Text>
-              <TouchableOpacity onPress={handleOpenGoogleMaps}>
-                <Text style={styles.gpsAddress}>Mở xem trên Google Maps ↗</Text>
+              <Text style={styles.gpsTimestamp}>Cập nhật lúc: {currentCoords.timestamp}</Text>
+              <TouchableOpacity onPress={handleOpenGoogleMaps} style={styles.mapsLinkRow}>
+                <Text style={styles.gpsAddress}>Mở xem vị trí trên Google Maps ↗</Text>
               </TouchableOpacity>
             </View>
           ) : null}
 
           <View style={styles.locationBtnRow}>
             <TouchableOpacity
-              style={[styles.locationToggleBtn, isSharingLocation && styles.locationRevokeBtn]}
-              onPress={handleToggleLocationSharing}
+              style={styles.locationToggleBtn}
+              onPress={handleGetLocation}
+              disabled={isLocating}
               activeOpacity={0.8}
             >
-              <Text style={styles.locationToggleText}>
-                {isSharingLocation ? '✕ DỪNG CHIA SẺ VỊ TRÍ' : '📍 LẤY VỊ TRÍ & CHIA SẺ'}
-              </Text>
+              {isLocating ? (
+                <View style={styles.locatingRow}>
+                  <ActivityIndicator size="small" color="#FFFDF8" />
+                  <Text style={[styles.locationToggleText, { marginLeft: 8 }]}>Đang định vị...</Text>
+                </View>
+              ) : (
+                <Text style={styles.locationToggleText}>
+                  {currentCoords ? '🔄 CẬP NHẬT LẠI VỊ TRÍ' : '📍 LẤY VỊ TRÍ HIỆN TẠI (GPS)'}
+                </Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -476,10 +487,17 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSizes.xs,
     fontWeight: typography.fontWeights.bold,
   },
+  gpsTimestamp: {
+    color: colors.textSecondary,
+    fontSize: typography.fontSizes.xs - 1,
+    marginTop: 2,
+  },
+  mapsLinkRow: {
+    marginTop: 6,
+  },
   gpsAddress: {
     color: colors.primary,
     fontSize: typography.fontSizes.xs,
-    marginTop: 4,
     fontWeight: typography.fontWeights.semiBold,
   },
   locationBtnRow: {
@@ -492,9 +510,12 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  locationRevokeBtn: {
-    backgroundColor: colors.error,
+  locatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   locationToggleText: {
     color: '#FFFDF8',
