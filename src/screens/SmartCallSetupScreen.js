@@ -13,6 +13,7 @@ import { colors, typography, spacing, borderRadius } from '../theme/colors';
 import Header from '../components/Header';
 import AudioPlayerControl from '../components/AudioPlayerControl';
 import { AMBIENT_PRESETS } from '../services/audioService';
+import { getDynamicRoleDialogue } from '../services/dialogueService';
 
 export default function SmartCallSetupScreen({
   callers = [],
@@ -48,7 +49,6 @@ export default function SmartCallSetupScreen({
   const [callAppearance, setCallAppearance] = useState(
     initialConfig?.callAppearance || 'android'
   );
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const appearanceOptions = [
     { id: 'android', label: 'Android', icon: '🤖' },
@@ -60,10 +60,7 @@ export default function SmartCallSetupScreen({
   const [dialogue, setDialogue] = useState(
     initialConfig?.dialogue && initialConfig.dialogue.length > 0
       ? initialConfig.dialogue
-      : [
-          'Alo, em đang ở đâu đấy? Có việc gấp cần xử lý ngay bây giờ!',
-          'Dạ vâng, em xin phép mọi người rồi về xử lý ngay đây ạ!',
-        ]
+      : getDynamicRoleDialogue(defaultCaller, initialConfig?.title || 'Cuộc gọi của tôi', defaultCaller.role)
   );
   const [newDialogueLine, setNewDialogueLine] = useState('');
 
@@ -81,6 +78,11 @@ export default function SmartCallSetupScreen({
     setCallerPhone(c.phoneNumber);
     setCallerRole(c.role);
     setAvatarUrl(c.avatarUrl || '');
+
+    // If dialogue was auto-generated or default, update dialogue to match the selected caller persona
+    if (!initialConfig?.dialogue || initialConfig?.dialogue?.length === 0) {
+      setDialogue(getDynamicRoleDialogue(c, title, c.role));
+    }
   };
 
   const handleAddDialogueLine = () => {
@@ -360,95 +362,75 @@ export default function SmartCallSetupScreen({
           ) : null}
         </View>
 
-        {/* Advanced Options Toggle (Progressive Disclosure) */}
-        <TouchableOpacity
-          style={styles.advancedToggleBar}
-          onPress={() => setShowAdvanced(!showAdvanced)}
-          activeOpacity={0.8}
-        >
-          <View style={styles.advancedToggleTextWrap}>
-            <Text style={styles.advancedToggleTitle}>
-              {showAdvanced ? '▼ Thu gọn tùy chọn nâng cao' : '▶ Tùy chọn nâng cao (Âm nền & Thoại)'}
-            </Text>
-            <Text style={styles.advancedToggleSub}>
-              {showAdvanced ? 'Đang mở bộ trộn âm lượng và kịch bản thoại' : 'Chạm để tùy chỉnh âm thanh bối cảnh & câu thoại'}
-            </Text>
-          </View>
-        </TouchableOpacity>
-
-        {showAdvanced ? (
-          <>
-            {/* Ambient Sound Selection */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>4. ÂM THANH BỐI CẢNH (AMBIENT SOUND)</Text>
-              <View style={styles.ambientList}>
-                {AMBIENT_PRESETS.map((preset) => {
-                  const isSelected = ambientSound === preset.id;
-                  return (
-                    <TouchableOpacity
-                      key={preset.id}
-                      style={[styles.ambientItem, isSelected && styles.ambientItemSelected]}
-                      onPress={() => setAmbientSound(preset.id)}
-                    >
-                      <View style={styles.ambientInfo}>
-                        <Text style={[styles.ambientLabel, isSelected && styles.ambientLabelSelected]}>
-                          {preset.label}
-                        </Text>
-                        <Text style={styles.ambientDesc}>{preset.description}</Text>
-                      </View>
-                      <Text style={styles.checkIcon}>{isSelected ? '✓' : '○'}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* Audio Volume Mixing (Independent sliders) */}
-            <AudioPlayerControl
-              voiceVolume={voiceVolume}
-              ambientVolume={ambientVolume}
-              onVoiceVolumeChange={setVoiceVolume}
-              onAmbientVolumeChange={setAmbientVolume}
-            />
-
-            {/* Multi-step Voice Dialogue */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>5. ĐOẠN THOẠI KỊCH BẢN (MULTI-STEP DIALOGUE)</Text>
-              <Text style={styles.sectionSubtitle}>
-                Lời thoại sẽ phát theo từng câu khi bạn nhận cuộc gọi mô phỏng:
-              </Text>
-
-              {dialogue.map((line, idx) => (
-                <View key={`line_${idx}`} style={styles.dialogueRow}>
-                  <View style={styles.stepNumCircle}>
-                    <Text style={styles.stepNumText}>{idx + 1}</Text>
+        {/* 4. Ambient Sound Selection (Permanently visible) */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>4. ÂM THANH BỐI CẢNH (AMBIENT SOUND)</Text>
+          <View style={styles.ambientList}>
+            {AMBIENT_PRESETS.map((preset) => {
+              const isSelected = ambientSound === preset.id;
+              return (
+                <TouchableOpacity
+                  key={preset.id}
+                  style={[styles.ambientItem, isSelected && styles.ambientItemSelected]}
+                  onPress={() => setAmbientSound(preset.id)}
+                >
+                  <View style={styles.ambientInfo}>
+                    <Text style={[styles.ambientLabel, isSelected && styles.ambientLabelSelected]}>
+                      {preset.label}
+                    </Text>
+                    <Text style={styles.ambientDesc}>{preset.description}</Text>
                   </View>
-                  <TextInput style={[styles.dialogueLineText, { flex: 1 }]} value={line} onChangeText={value => setDialogue(dialogue.map((item, i) => i === idx ? value : item))} multiline maxLength={500} />
-                  <TouchableOpacity
-                    style={styles.removeLineBtn}
-                    onPress={() => handleRemoveDialogueLine(idx)}
-                  >
-                    <Text style={styles.removeLineText}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-
-              {/* Add new line */}
-              <View style={styles.addLineBox}>
-                <TextInput
-                  style={styles.addLineInput}
-                  value={newDialogueLine}
-                  onChangeText={setNewDialogueLine}
-                  placeholder="Thêm câu thoại mới..."
-                  placeholderTextColor={colors.textMuted}
-                />
-                <TouchableOpacity style={styles.addLineBtn} onPress={handleAddDialogueLine}>
-                  <Text style={styles.addLineBtnText}>+ Thêm</Text>
+                  <Text style={styles.checkIcon}>{isSelected ? '✓' : '○'}</Text>
                 </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Audio Volume Mixing (Independent sliders) */}
+        <AudioPlayerControl
+          voiceVolume={voiceVolume}
+          ambientVolume={ambientVolume}
+          onVoiceVolumeChange={setVoiceVolume}
+          onAmbientVolumeChange={setAmbientVolume}
+        />
+
+        {/* 5. Multi-step Voice Dialogue */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>5. ĐOẠN THOẠI KỊCH BẢN (MULTI-STEP DIALOGUE)</Text>
+          <Text style={styles.sectionSubtitle}>
+            Lời thoại sẽ phát theo từng câu khi bạn nhận cuộc gọi mô phỏng:
+          </Text>
+
+          {dialogue.map((line, idx) => (
+            <View key={`line_${idx}`} style={styles.dialogueRow}>
+              <View style={styles.stepNumCircle}>
+                <Text style={styles.stepNumText}>{idx + 1}</Text>
               </View>
+              <TextInput style={[styles.dialogueLineText, { flex: 1 }]} value={line} onChangeText={value => setDialogue(dialogue.map((item, i) => i === idx ? value : item))} multiline maxLength={500} />
+              <TouchableOpacity
+                style={styles.removeLineBtn}
+                onPress={() => handleRemoveDialogueLine(idx)}
+              >
+                <Text style={styles.removeLineText}>✕</Text>
+              </TouchableOpacity>
             </View>
-          </>
-        ) : null}
+          ))}
+
+          {/* Add new line */}
+          <View style={styles.addLineBox}>
+            <TextInput
+              style={styles.addLineInput}
+              value={newDialogueLine}
+              onChangeText={setNewDialogueLine}
+              placeholder="Thêm câu thoại mới..."
+              placeholderTextColor={colors.textMuted}
+            />
+            <TouchableOpacity style={styles.addLineBtn} onPress={handleAddDialogueLine}>
+              <Text style={styles.addLineBtnText}>+ Thêm</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* Actions */}
         <View style={styles.actionButtons}>

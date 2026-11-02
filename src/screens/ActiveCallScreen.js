@@ -12,8 +12,11 @@ import {
 import { colors, typography, spacing, borderRadius } from '../theme/colors';
 import { audioService } from '../services/audioService';
 import {
+  detectCallerPersona,
   getVoiceProfile,
   getDynamicRoleDialogue,
+  getCallerOpeningGreeting,
+  selectVietnameseVoice,
   generateOfflineCallReply,
 } from '../services/dialogueService';
 import { generateCallReply } from '../services/aiService';
@@ -40,6 +43,9 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
   const isListeningRef = useRef(false);
   const conversationHistoryRef = useRef([]);
   const currentStepRef = useRef(0);
+  const micDelayTimerRef = useRef(null);
+  const sttRestartTimerRef = useRef(null);
+  const abortControllerRef = useRef(null);
 
   const caller = callPayload?.caller || {
     name: callPayload?.callerName || 'Người gọi',
@@ -49,11 +55,13 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
 
   const scenarioTitle = callPayload?.title || callPayload?.scenarioTitle || '';
   const category = callPayload?.category || caller?.role || '';
-  const voiceProfile = getVoiceProfile(caller, scenarioTitle, category);
-  const dialogueList =
-    callPayload?.dialogue && callPayload.dialogue.length > 0
-      ? callPayload.dialogue
-      : getDynamicRoleDialogue(caller, scenarioTitle, category);
+  const personaKey = detectCallerPersona(caller, scenarioTitle, category);
+  const baseProfile = getVoiceProfile(caller, scenarioTitle, category);
+  const voiceProfile = {
+    ...baseProfile,
+    voiceIdentifier: selectVietnameseVoice(audioService.availableVoices, personaKey),
+  };
+  const dialogueList = getDynamicRoleDialogue(caller, scenarioTitle, category, callPayload?.dialogue);
 
   const ambientSound = callPayload?.ambientSound || 'none';
   const ambientVolume = callPayload?.ambientVolume ?? 0.25;
@@ -66,8 +74,10 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
     return () => clearInterval(timer);
   }, []);
 
-  // 2. Speech recognition helpers
+  // 2. Speech recognition helpers with anti-click and anti-echo guards
   const stopListening = () => {
+    clearTimeout(sttRestartTimerRef.current);
+    clearTimeout(micDelayTimerRef.current);
     isListeningRef.current = false;
     if (!SpeechRecognizer) return;
     try {
@@ -78,10 +88,9 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
   const startListening = () => {
     if (callEndedRef.current || isMutedRef.current || isAiSpeakingRef.current) return;
     if (!SpeechRecognizer || typeof SpeechRecognizer.start !== 'function') return;
+    if (isListeningRef.current) return; // Prevent unnecessary repeated re-initialization
+
     try {
-      try {
-        SpeechRecognizer.abort();
-      } catch (_) {}
       isListeningRef.current = true;
       SpeechRecognizer.start({
         lang: 'vi-VN',
@@ -94,6 +103,18 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
     }
   };
 
+  // Anti-echo acoustic buffer: Wait 450ms after TTS ends before opening mic
+  const onCallerFinishedSpeaking = () => {
+    isAiSpeakingRef.current = false;
+    if (callEndedRef.current || isMutedRef.current) return;
+    clearTimeout(micDelayTimerRef.current);
+    micDelayTimerRef.current = setTimeout(() => {
+      if (!callEndedRef.current && !isMutedRef.current && !isAiSpeakingRef.current) {
+        startListening();
+      }
+    }, 450);
+  };
+
   const handleUserSpeech = async (userText) => {
     if (!userText || !userText.trim() || callEndedRef.current) return;
     stopListening();
@@ -101,6 +122,9 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
 
     const trimmedText = userText.trim();
     conversationHistoryRef.current.push({ role: 'user', text: trimmedText });
+
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
 
     let reply = '';
     try {
@@ -116,10 +140,10 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
         reply = res.reply;
       }
     } catch (_) {
-      // Fallback gracefully on timeout, offline, or rate limit
+      // Graceful offline fallback on timeout or network error
     }
 
-    if (!reply) {
+    if (!reply && !callEndedRef.current) {
       currentStepRef.current += 1;
       reply = generateOfflineCallReply({
         caller,
@@ -135,15 +159,10 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
 
     conversationHistoryRef.current.push({ role: 'caller', text: reply });
 
-    // Speak caller reply via Vietnamese TTS
+    // Speak caller reply via Vietnamese TTS (User speech is strictly not spoken)
     audioService.speakDialogueLine(
       reply,
-      () => {
-        isAiSpeakingRef.current = false;
-        if (!callEndedRef.current && !isMutedRef.current) {
-          startListening();
-        }
-      },
+      onCallerFinishedSpeaking,
       voiceProfile
     );
   };
@@ -161,14 +180,22 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
     });
 
     const subError = SpeechRecognizer.addListener('error', (event) => {
+      // Prevent rapid zero-delay restart loop which causes physical audio DAC clicks ("tách tách tách")
       if (event?.error === 'speech-timeout' || event?.error === 'no-speech') {
         if (!callEndedRef.current && !isMutedRef.current && !isAiSpeakingRef.current) {
-          startListening();
+          clearTimeout(sttRestartTimerRef.current);
+          sttRestartTimerRef.current = setTimeout(() => {
+            if (!callEndedRef.current && !isMutedRef.current && !isAiSpeakingRef.current) {
+              startListening();
+            }
+          }, 1200);
         }
       }
     });
 
     return () => {
+      clearTimeout(sttRestartTimerRef.current);
+      clearTimeout(micDelayTimerRef.current);
       try {
         subResult?.remove?.();
       } catch (_) {}
@@ -196,26 +223,26 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
       audioService.startAmbientSound(ambientSound, ambientVolume);
     }
 
-    // Play opening greeting line
-    const openingGreeting =
-      dialogueList && dialogueList.length > 0
-        ? dialogueList[0]
-        : 'Alo em à, anh có việc gấp!';
+    // Play persona-appropriate opening greeting line
+    const openingGreeting = getCallerOpeningGreeting({
+      caller,
+      scenarioTitle,
+      category,
+      dialogueList,
+    });
     conversationHistoryRef.current = [{ role: 'caller', text: openingGreeting }];
 
     audioService.speakDialogueLine(
       openingGreeting,
-      () => {
-        isAiSpeakingRef.current = false;
-        if (!callEndedRef.current && !isMutedRef.current) {
-          startListening();
-        }
-      },
+      onCallerFinishedSpeaking,
       voiceProfile
     );
 
     return () => {
       callEndedRef.current = true;
+      abortControllerRef.current?.abort();
+      clearTimeout(micDelayTimerRef.current);
+      clearTimeout(sttRestartTimerRef.current);
       stopListening();
       audioService.stopAll();
     };
@@ -250,12 +277,7 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
     conversationHistoryRef.current.push({ role: 'caller', text: nextLine });
     audioService.speakDialogueLine(
       nextLine,
-      () => {
-        isAiSpeakingRef.current = false;
-        if (!callEndedRef.current && !isMutedRef.current) {
-          startListening();
-        }
-      },
+      onCallerFinishedSpeaking,
       voiceProfile
     );
   };
@@ -279,6 +301,9 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
   // Immediate hang-up with complete audio and recording termination
   const handleEndCall = () => {
     callEndedRef.current = true;
+    abortControllerRef.current?.abort();
+    clearTimeout(micDelayTimerRef.current);
+    clearTimeout(sttRestartTimerRef.current);
     stopListening();
     audioService.stopAll();
     if (onHangUp) {

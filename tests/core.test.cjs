@@ -62,13 +62,56 @@ test('production scheduler restores, fires once, cancels, and never launches in 
 });
 test('production dynamic roleplay dialogue and offline conversational replies', () => {
   const load = loader({});
-  const { getVoiceProfile, detectCallerPersona, getDynamicRoleDialogue, generateOfflineCallReply } = load('src/services/dialogueService.js');
+  const {
+    getVoiceProfile,
+    detectCallerPersona,
+    getDynamicRoleDialogue,
+    generateOfflineCallReply,
+    filterCallerOnlyLines,
+    dialogueMatchesPersona,
+    selectVietnameseVoice,
+  } = load('src/services/dialogueService.js');
 
   assert.equal(detectCallerPersona({ name: 'Sếp Hoàng', role: 'Trưởng phòng' }), 'BOSS');
   assert.equal(detectCallerPersona({ name: 'Mẹ Yêu', role: 'Gia đình' }), 'FAMILY_MOM');
   assert.equal(detectCallerPersona({ name: 'Bố', role: 'Gia đình' }), 'FAMILY_DAD');
   assert.equal(detectCallerPersona({ name: 'Shipper Nam', role: 'Giao hàng' }), 'SHIPPER');
   assert.equal(detectCallerPersona({ name: 'Bạn thân', role: 'Bạn bè' }), 'FRIEND');
+
+  // Critical Persona Dominance test: Caller identity MUST override conflicting scenario titles
+  assert.equal(
+    detectCallerPersona({ name: 'Mẹ Yêu', role: 'Gia đình' }, 'Sếp gọi xử lý sự cố server khẩn cấp', 'Công sở'),
+    'FAMILY_MOM',
+    'Caller role/name must override boss scenario'
+  );
+  assert.equal(
+    detectCallerPersona({ name: 'Bố', role: 'Bố' }, 'Sếp gọi xử lý máy chủ', 'Công sở'),
+    'FAMILY_DAD',
+    'Caller role/name must override boss scenario'
+  );
+
+  // Turn separation test: filter out user lines
+  const mixedLines = [
+    'Alo con à, về nhà gấp nhé!',
+    'Dạ vâng mẹ, con về ngay ạ!',
+    'Mẹ đang đợi ở nhà, đi cẩn thận nha.',
+  ];
+  const callerOnly = filterCallerOnlyLines(mixedLines);
+  assert.equal(callerOnly.length, 2);
+  assert.equal(callerOnly[0], 'Alo con à, về nhà gấp nhé!');
+  assert.equal(callerOnly[1], 'Mẹ đang đợi ở nhà, đi cẩn thận nha.');
+
+  // Dialogue persona conflict detection
+  assert.equal(dialogueMatchesPersona(['Alo em à, server đang sập!'], 'FAMILY_MOM'), false);
+  assert.equal(dialogueMatchesPersona(['Alo con à, về gấp!'], 'FAMILY_MOM'), true);
+
+  // Voice selection test
+  const sampleVoices = [
+    { identifier: 'vi-VN-Standard-A', name: 'vi-vn-x-vic-network', language: 'vi-VN' },
+    { identifier: 'vi-VN-Standard-B', name: 'vi-vn-x-vie-local', language: 'vi-VN' },
+  ];
+  assert.equal(selectVietnameseVoice(sampleVoices, 'FAMILY_MOM'), 'vi-VN-Standard-A');
+  assert.equal(selectVietnameseVoice(sampleVoices, 'BOSS'), 'vi-VN-Standard-B');
 
   const bossVoice = getVoiceProfile({ name: 'Sếp Hoàng' });
   assert.ok(bossVoice.pitch && bossVoice.rate);

@@ -1,5 +1,7 @@
 /**
  * Prebuilt Vietnamese Escape Scenarios (FE2)
+ * All dialogue arrays contain purely CALLER lines (no user response lines)
+ * to ensure strict turn separation in two-way call simulation.
  */
 
 export const DEFAULT_SCENARIOS = [
@@ -19,9 +21,8 @@ export const DEFAULT_SCENARIOS = [
     isPinned: true,
     dialogue: [
       'Alo em à! Hệ thống đang bị lỗi nghiêm trọng trên máy chủ, khách hàng đang phản ánh rất gắt.',
-      'Dạ vâng anh, em đang có mặt ở ngoài nhưng em sẽ về mở máy kiểm tra ngay lập tức ạ!',
-      'Ừ, anh vừa tag em vào Slack rồi đấy, cố gắng truy cập VPN trong vòng 15 phút tới nhé.',
-      'Dạ vâng em rõ rồi, em chào mọi người rồi phi về ngay đây anh ơi!',
+      'Anh vừa tag em vào Slack rồi đấy, cố gắng truy cập VPN mở máy trong vòng 15 phút tới nhé!',
+      'Sự cố này khẩn cấp ảnh hưởng trực tiếp đến hợp đồng lớn, em tập trung xử lý ngay giúp anh!',
     ],
     suggestedMessage: 'Dạ xin lỗi mọi người, sếp vừa gọi báo server công ty gặp sự cố khẩn cấp cần em mở máy can thiệp ngay. Em xin phép về trước xử lý, hẹn dịp khác em xin tạ lỗi ạ!',
   },
@@ -41,9 +42,8 @@ export const DEFAULT_SCENARIOS = [
     isPinned: true,
     dialogue: [
       'Alo con à, con đang ở đâu đấy? Về nhà gấp nhé, bố đang cần con hỗ trợ việc gia đình ngay!',
-      'Dạ vâng mẹ, có việc gì gấp thế mẹ? Con đang ở ngoài với bạn bè một chút ạ.',
-      'Ừ về sớm đi, tầm 15-20 phút nữa là phải có mặt rồi, nhanh lên kẻo muộn nhé con.',
-      'Dạ con hiểu rồi, con chào mọi người rồi về ngay đây mẹ nhé!',
+      'Con thu xếp về sớm đi, tầm 15-20 phút nữa là phải có mặt rồi, nhanh lên kẻo muộn nhé con.',
+      'Mẹ với mọi người đang đợi ở nhà đây, đi đường cẩn thận rồi về liền nha con!',
     ],
     suggestedMessage: 'Em/mình xin phép về trước vì nhà có việc gấp bố mẹ cần hỗ trợ ngay. Chúc mọi người vui vẻ, hẹn dịp tới tụ họp lại nha!',
   },
@@ -64,8 +64,7 @@ export const DEFAULT_SCENARIOS = [
     dialogue: [
       'Alo anh/chị ơi, em là shipper bên giao hàng đây, em đang đứng trước cửa nhà mình rồi ạ!',
       'Đơn này là bưu phẩm bảo đảm có chữ ký tươi người nhận, anh/chị ra lấy giúp em trong 5 phút nhé!',
-      'Dạ vâng, em đang cách nhà một đoạn ngắn thôi, anh đợi em một chút em chạy ra lấy ngay!',
-      'Vâng nhanh giúp em nhé vì em còn nhiều đơn phải giao trước giờ tổng kết kho.',
+      'Hàng này bảo quản nhanh, anh/chị tranh thủ xuống sớm giúp em để em kịp giao chuyến tiếp theo nhé!',
     ],
     suggestedMessage: 'Mọi người cứ tiếp tục nhé, shipper giao giấy tờ quan trọng đang đứng đợi trước nhà, mình xin phép ra nhận và giải quyết chút việc!',
   },
@@ -85,9 +84,8 @@ export const DEFAULT_SCENARIOS = [
     isPinned: false,
     dialogue: [
       'Alo mày ơi cứu tao với, xe tao bị thủng xăm dắt bộ đoạn đường tối quá không tìm thấy tiệm sửa xe nào cả!',
-      'Mày đang ở đoạn nào thế? Có an toàn không?',
-      'Tao đang đứng ở chân cầu vượt, mày qua đón tao hoặc đem bơm qua giúp tao với được không?',
-      'Rồi rồi bình tĩnh, đứng nguyên chỗ có đèn sáng đợi tao 10 phút, tao xin phép mọi người rồi phóng xe qua liền!',
+      'Tao đang đứng ở chân cầu vượt này, mày qua đón tao hoặc đem bơm qua giúp tao với được không?',
+      'Nhanh nhé bạn hiền ơi, đứng đây một mình sốt ruột quá, tao gửi định vị qua Zalo rồi đấy!',
     ],
     suggestedMessage: 'Ôi con bạn thân xe bị hỏng giữa đường tối đang cần mình qua đón gấp, mình xin phép đi hỗ trợ nó trước nhé cả nhà!',
   },
@@ -108,10 +106,8 @@ export const DEFAULT_SCENARIOS = [
     dialogue: [
       'Alo cháu à, chú ở phòng bên cạnh đây, hình như vòi nước ban công nhà cháu bị bục chảy tràn ra hành lang rồi này!',
       'Cháu có ở gần đấy không về khóa van tổng gấp, nước đang ngấm xuống sàn tầng dưới rồi đấy!',
-      'Dạ chết rồi, cháu về khóa van ngay lập tức đây ạ! Cảm ơn chú nhiều đã gọi báo cho cháu!',
-      'Ừ nhanh lên cháu nhé, không hư hỏng hết sàn gỗ đấy.',
+      'Ừ nhanh lên cháu nhé, không hư hỏng hết đồ đạc và sàn gỗ của mọi người đấy.',
     ],
     suggestedMessage: 'Hàng xóm vừa gọi báo nhà mình gặp sự cố bục vòi nước tràn ra ngoài, mình phải về gấp để khóa van và xử lý. Xin lỗi cả nhà rất nhiều nhé!',
   },
 ];
-

@@ -137,104 +137,189 @@ export const ROLE_DIALOGUES = {
 
 /**
  * Detect caller persona key from caller info, category, and scenario title
+ * Priority:
+ * 1. Specific relationship keywords in caller.role and caller.name
+ * 2. Category / Generic roles
+ * 3. Scenario title as supporting info only
  */
 export function detectCallerPersona(caller = {}, scenarioTitle = '', category = '') {
-  const name = (caller.name || '').toLowerCase();
-  const role = (caller.role || '').toLowerCase();
-  const title = (scenarioTitle || '').toLowerCase();
-  const cat = (category || '').toLowerCase();
+  const role = (caller.role || '').toLowerCase().trim();
+  const name = (caller.name || '').toLowerCase().trim();
+  const title = (scenarioTitle || '').toLowerCase().trim();
+  const cat = (category || '').toLowerCase().trim();
 
-  // 1. Mom / Female elder family
+  // 1. Mom / Female elder family (check role and name)
   if (
-    name.includes('mẹ') ||
-    name.includes('mama') ||
-    name.includes('mom') ||
-    name.includes('má') ||
-    name.includes('mẹ yêu') ||
-    role.includes('mẹ') ||
-    title.includes('mẹ gọi')
+    role.includes('mẹ') || role.includes('má') || role.includes('mama') || role.includes('mom') || role.includes('mẫu thân') ||
+    name.includes('mẹ') || name.includes('má') || name.includes('mama') || name.includes('mom') || name.includes('mẹ yêu')
   ) {
     return 'FAMILY_MOM';
   }
 
-  // 2. Dad / Male elder family
+  // 2. Dad / Male elder family (check role and name)
   if (
-    name.includes('bố') ||
-    name.includes('ba') ||
-    name.includes('bố yêu') ||
-    name.includes('cha') ||
-    name.includes('bác') ||
-    name.includes('chú') ||
-    role.includes('bố') ||
-    role.includes('ba') ||
-    title.includes('bố gọi')
+    role.includes('bố') || role.includes('ba') || role.includes('cha') || role.includes('phụ thân') || role.includes('bác') || role.includes('chú') ||
+    name.includes('bố') || name.includes('ba') || name.includes('cha') || name.includes('bố yêu') || name.includes('chú') || name.includes('bác')
   ) {
     return 'FAMILY_DAD';
   }
 
-  // 3. Boss / Urgent workplace
+  // 3. Boss / Workplace (check role and name)
   if (
-    name.includes('sếp') ||
-    name.includes('trưởng phòng') ||
-    name.includes('giám đốc') ||
-    name.includes('lead') ||
-    name.includes('quản lý') ||
-    role.includes('sếp') ||
-    role.includes('trưởng phòng') ||
-    role.includes('công sở') ||
-    title.includes('sếp') ||
-    title.includes('server') ||
-    title.includes('công ty') ||
-    cat.includes('công sở')
+    role.includes('sếp') || role.includes('trưởng phòng') || role.includes('giám đốc') || role.includes('lead') || role.includes('quản lý') || role.includes('công sở') || role.includes('boss') ||
+    name.includes('sếp') || name.includes('trưởng phòng') || name.includes('giám đốc') || name.includes('lead') || name.includes('quản lý')
   ) {
     return 'BOSS';
   }
 
-  // 4. Shipper / Delivery
+  // 4. Shipper / Delivery (check role and name)
   if (
-    name.includes('ship') ||
-    name.includes('giao hàng') ||
-    role.includes('ship') ||
-    role.includes('giao hàng') ||
-    title.includes('ship') ||
-    title.includes('giao hàng')
+    role.includes('ship') || role.includes('giao hàng') || role.includes('bưu tá') || role.includes('vận chuyển') ||
+    name.includes('ship') || name.includes('giao hàng') || name.includes('bưu tá')
   ) {
     return 'SHIPPER';
   }
 
-  // 5. Doctor / Medical
+  // 5. Doctor / Medical (check role and name)
   if (
-    name.includes('bác sĩ') ||
-    name.includes('phòng khám') ||
-    name.includes('bệnh viện') ||
-    role.includes('bác sĩ') ||
-    role.includes('y tế') ||
-    title.includes('bác sĩ') ||
-    title.includes('bệnh viện')
+    role.includes('bác sĩ') || role.includes('y tế') || role.includes('bệnh viện') || role.includes('phòng khám') || role.includes('nha khoa') || role.includes('y tá') ||
+    name.includes('bác sĩ') || name.includes('phòng khám') || name.includes('bệnh viện')
   ) {
     return 'DOCTOR';
   }
 
-  // 6. Friend / Colleague
+  // 6. Friend / Colleague (check role and name)
   if (
-    name.includes('bạn') ||
-    name.includes('thằng') ||
-    name.includes('con') ||
-    name.includes('đồng nghiệp') ||
-    role.includes('bạn') ||
-    cat.includes('bạn') ||
-    title.includes('bạn') ||
-    title.includes('xe hỏng')
+    role.includes('bạn') || role.includes('đồng nghiệp') || role.includes('bồ') || role.includes('tri kỷ') ||
+    name.includes('bạn') || name.includes('thằng') || name.includes('đồng nghiệp') || name.includes('bé yêu')
   ) {
     return 'FRIEND';
   }
 
-  // 7. General family category
-  if (cat.includes('gia đình') || role.includes('gia đình')) {
+  // 7. Generic role / category fallback
+  if (role.includes('gia đình') || cat.includes('gia đình')) {
     return 'FAMILY_MOM';
+  }
+  if (cat.includes('công sở')) return 'BOSS';
+  if (cat.includes('bạn')) return 'FRIEND';
+  if (cat.includes('y tế')) return 'DOCTOR';
+
+  // 8. Scenario Title as LAST resort only
+  if (title) {
+    if (title.includes('mẹ')) return 'FAMILY_MOM';
+    if (title.includes('bố') || title.includes('ba')) return 'FAMILY_DAD';
+    if (title.includes('sếp') || title.includes('server') || title.includes('công ty')) return 'BOSS';
+    if (title.includes('ship') || title.includes('giao hàng')) return 'SHIPPER';
+    if (title.includes('bác sĩ') || title.includes('phòng khám') || title.includes('bệnh viện')) return 'DOCTOR';
+    if (title.includes('bạn') || title.includes('xe hỏng')) return 'FRIEND';
+    if (title.includes('gia đình') || title.includes('nhà')) return 'FAMILY_MOM';
   }
 
   return 'DEFAULT';
+}
+
+/**
+ * Filter out user responses from a dialogue script so that TTS speaks ONLY caller lines
+ */
+export function filterCallerOnlyLines(dialogue) {
+  if (!Array.isArray(dialogue)) return [];
+  return dialogue.filter(line => {
+    if (!line || typeof line !== 'string') return false;
+    const l = line.toLowerCase().trim();
+    if (
+      l.startsWith('dạ vâng') ||
+      l.startsWith('vâng anh') ||
+      l.startsWith('vâng mẹ') ||
+      l.startsWith('vâng sếp') ||
+      l.startsWith('vâng bố') ||
+      l.startsWith('dạ con') ||
+      l.startsWith('dạ em') ||
+      l.startsWith('con chào mọi người') ||
+      l.startsWith('em chào mọi người') ||
+      l.startsWith('mày đang ở đoạn nào') ||
+      l.startsWith('rồi rồi bình tĩnh')
+    ) {
+      return false;
+    }
+    return true;
+  });
+}
+
+/**
+ * Check if a dialogue snippet conflicts with the selected caller persona
+ */
+export function dialogueMatchesPersona(dialogue, personaKey) {
+  if (!dialogue || !dialogue[0]) return false;
+  const first = String(dialogue[0]).toLowerCase();
+  if (personaKey === 'FAMILY_MOM' || personaKey === 'FAMILY_DAD') {
+    if (
+      first.includes('server') ||
+      first.includes('sếp') ||
+      first.includes('khách hàng phản ánh') ||
+      first.includes('shipper') ||
+      first.includes('bưu phẩm') ||
+      first.includes('phòng khám')
+    ) {
+      return false;
+    }
+  }
+  if (personaKey === 'BOSS') {
+    if (
+      first.includes('mẹ') ||
+      first.includes('con à') ||
+      first.includes('bố đây') ||
+      first.includes('shipper') ||
+      first.includes('bác sĩ') ||
+      first.includes('xe tao bị')
+    ) {
+      return false;
+    }
+  }
+  if (personaKey === 'SHIPPER') {
+    if (
+      first.includes('server') ||
+      first.includes('mẹ') ||
+      first.includes('con à') ||
+      first.includes('bố đây') ||
+      first.includes('bác sĩ')
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Select best Vietnamese voice from device voices matching caller persona
+ */
+export function selectVietnameseVoice(availableVoices = [], personaKey = 'DEFAULT') {
+  if (!Array.isArray(availableVoices) || availableVoices.length === 0) return null;
+  const viVoices = availableVoices.filter(v => {
+    const lang = (v?.language || '').toLowerCase();
+    return lang.includes('vi') || lang.includes('vie');
+  });
+  if (viVoices.length === 0) return null;
+
+  const isFemale = personaKey === 'FAMILY_MOM';
+  const isMale = personaKey === 'FAMILY_DAD' || personaKey === 'BOSS';
+
+  if (isFemale) {
+    const femaleVoice = viVoices.find(v => {
+      const name = (v?.name || v?.identifier || '').toLowerCase();
+      return name.includes('female') || name.includes('linh') || name.includes('mai') || name.includes('vic');
+    });
+    if (femaleVoice) return femaleVoice.identifier;
+  }
+
+  if (isMale) {
+    const maleVoice = viVoices.find(v => {
+      const name = (v?.name || v?.identifier || '').toLowerCase();
+      return name.includes('male') || name.includes('nam') || name.includes('minh') || name.includes('vie');
+    });
+    if (maleVoice) return maleVoice.identifier;
+  }
+
+  return viVoices[0].identifier;
 }
 
 /**
@@ -250,21 +335,41 @@ export function getVoiceProfile(caller = {}, scenarioTitle = '', category = '') 
  * Avoids rigid repetitive templates by picking randomized variations.
  */
 export function getDynamicRoleDialogue(caller = {}, scenarioTitle = '', category = '', existingDialogue = null) {
-  // If the scenario already has custom detailed authored dialogue, preserve it
+  const personaKey = detectCallerPersona(caller, scenarioTitle, category);
+
+  // If existing dialogue is present, clean it and verify it matches the caller persona
   if (
     existingDialogue &&
     Array.isArray(existingDialogue) &&
-    existingDialogue.length >= 2 &&
-    !isGenericPlaceholderDialogue(existingDialogue)
+    existingDialogue.length >= 1 &&
+    !isGenericPlaceholderDialogue(existingDialogue) &&
+    dialogueMatchesPersona(existingDialogue, personaKey)
   ) {
-    return existingDialogue;
+    const callerOnly = filterCallerOnlyLines(existingDialogue);
+    if (callerOnly.length > 0) return callerOnly;
   }
 
-  const personaKey = detectCallerPersona(caller, scenarioTitle, category);
   const variations = ROLE_DIALOGUES[personaKey] || ROLE_DIALOGUES.BOSS;
-  // Pick variation pseudo-randomly or deterministically based on timestamp/name
   const index = Math.floor(Math.random() * variations.length);
   return variations[index] || variations[0];
+}
+
+/**
+ * Get single opening greeting for caller when call starts
+ */
+export function getCallerOpeningGreeting({ caller = {}, scenarioTitle = '', category = '', dialogueList = [] }) {
+  const personaKey = detectCallerPersona(caller, scenarioTitle, category);
+  if (
+    Array.isArray(dialogueList) &&
+    dialogueList.length > 0 &&
+    !isGenericPlaceholderDialogue(dialogueList) &&
+    dialogueMatchesPersona(dialogueList, personaKey)
+  ) {
+    const callerOnly = filterCallerOnlyLines(dialogueList);
+    if (callerOnly.length > 0) return callerOnly[0];
+  }
+  const roleLines = ROLE_DIALOGUES[personaKey] || ROLE_DIALOGUES.BOSS;
+  return roleLines[0]?.[0] || 'Alo, có việc gấp cần trao đổi ngay!';
 }
 
 import { generateCallerDialogue } from './aiService.js';
@@ -301,11 +406,12 @@ export async function fetchAiOrFallbackDialogue({ caller = {}, scenarioTitle = '
 }
 function isGenericPlaceholderDialogue(dialogue) {
   if (!dialogue || !dialogue[0]) return true;
-  const first = dialogue[0].toLowerCase();
+  const first = String(dialogue[0]).toLowerCase();
   return (
     first.includes('alo em à, anh có việc gấp') ||
     first.includes('dự án đang có lỗi cần em về mở máy') ||
-    first.includes('alo con à, về nhà gấp nhé')
+    first.includes('alo con à, về nhà gấp nhé') ||
+    first.includes('có việc gấp cần xử lý ngay bây giờ')
   );
 }
 
@@ -384,9 +490,15 @@ export function generateOfflineCallReply({
     return 'Bác sĩ trực tiếp dặn bạn cần có mặt để trao đổi kết quả, bạn di chuyển qua phòng khám ngay nhé.';
   }
 
-  // Fallback to next line in preset dialogue if available
-  if (Array.isArray(dialogueList) && dialogueList.length > stepIndex) {
-    return dialogueList[stepIndex];
+  // Fallback to next line in preset dialogue if available and matches caller persona
+  if (
+    Array.isArray(dialogueList) &&
+    dialogueMatchesPersona(dialogueList, persona)
+  ) {
+    const callerLines = filterCallerOnlyLines(dialogueList);
+    if (callerLines.length > stepIndex) {
+      return callerLines[stepIndex];
+    }
   }
 
   return 'Có việc khẩn cấp cần giải quyết ngay bây giờ, bạn thu xếp rời khỏi đó rồi qua hỗ trợ liền nhé!';
