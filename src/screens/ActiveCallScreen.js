@@ -11,8 +11,19 @@ import {
 } from 'react-native';
 import { colors, typography, spacing, borderRadius } from '../theme/colors';
 import { audioService } from '../services/audioService';
-import { getVoiceProfile, getDynamicRoleDialogue } from '../services/dialogueService';
+import {
+  getVoiceProfile,
+  getDynamicRoleDialogue,
+  generateOfflineCallReply,
+} from '../services/dialogueService';
+import { generateCallReply } from '../services/aiService';
 import CallIcon from '../components/CallIcon';
+
+let SpeechRecognizer = null;
+try {
+  const mod = require('expo-speech-recognition');
+  SpeechRecognizer = mod?.ExpoSpeechRecognitionModule || null;
+} catch (_) {}
 
 export default function ActiveCallScreen({ callPayload, onHangUp }) {
   // Appearance determined before call: 'android' | 'ios' | 'zalo' | 'messenger'
@@ -22,7 +33,13 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
   const [currentDialogueIndex, setCurrentDialogueIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(true);
+
   const callEndedRef = useRef(false);
+  const isMutedRef = useRef(false);
+  const isAiSpeakingRef = useRef(false);
+  const isListeningRef = useRef(false);
+  const conversationHistoryRef = useRef([]);
+  const currentStepRef = useRef(0);
 
   const caller = callPayload?.caller || {
     name: callPayload?.callerName || 'Người gọi',
@@ -49,23 +66,157 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
     return () => clearInterval(timer);
   }, []);
 
-  // 2. Play ambient sound and opening line ONCE on call start (no auto-progression)
+  // 2. Speech recognition helpers
+  const stopListening = () => {
+    isListeningRef.current = false;
+    if (!SpeechRecognizer) return;
+    try {
+      SpeechRecognizer.abort();
+    } catch (_) {}
+  };
+
+  const startListening = () => {
+    if (callEndedRef.current || isMutedRef.current || isAiSpeakingRef.current) return;
+    if (!SpeechRecognizer || typeof SpeechRecognizer.start !== 'function') return;
+    try {
+      try {
+        SpeechRecognizer.abort();
+      } catch (_) {}
+      isListeningRef.current = true;
+      SpeechRecognizer.start({
+        lang: 'vi-VN',
+        interimResults: false,
+        continuous: false,
+        requiresOnDeviceRecognition: false,
+      });
+    } catch (_) {
+      isListeningRef.current = false;
+    }
+  };
+
+  const handleUserSpeech = async (userText) => {
+    if (!userText || !userText.trim() || callEndedRef.current) return;
+    stopListening();
+    isAiSpeakingRef.current = true;
+
+    const trimmedText = userText.trim();
+    conversationHistoryRef.current.push({ role: 'user', text: trimmedText });
+
+    let reply = '';
+    try {
+      const res = await generateCallReply({
+        callerName: caller.name,
+        callerRole: caller.role,
+        scenarioTitle,
+        category,
+        userUtterance: trimmedText,
+        conversationHistory: conversationHistoryRef.current,
+      });
+      if (res?.reply) {
+        reply = res.reply;
+      }
+    } catch (_) {
+      // Fallback gracefully on timeout, offline, or rate limit
+    }
+
+    if (!reply) {
+      currentStepRef.current += 1;
+      reply = generateOfflineCallReply({
+        caller,
+        scenarioTitle,
+        category,
+        userUtterance: trimmedText,
+        dialogueList,
+        stepIndex: currentStepRef.current,
+      });
+    }
+
+    if (callEndedRef.current) return;
+
+    conversationHistoryRef.current.push({ role: 'caller', text: reply });
+
+    // Speak caller reply via Vietnamese TTS
+    audioService.speakDialogueLine(
+      reply,
+      () => {
+        isAiSpeakingRef.current = false;
+        if (!callEndedRef.current && !isMutedRef.current) {
+          startListening();
+        }
+      },
+      voiceProfile
+    );
+  };
+
+  // 3. Speech Recognition Event Listener
+  useEffect(() => {
+    if (!SpeechRecognizer || typeof SpeechRecognizer.addListener !== 'function') return;
+
+    const subResult = SpeechRecognizer.addListener('result', (event) => {
+      if (callEndedRef.current || isMutedRef.current || isAiSpeakingRef.current) return;
+      const transcript = event?.results?.[0]?.transcript;
+      if (transcript && transcript.trim()) {
+        handleUserSpeech(transcript);
+      }
+    });
+
+    const subError = SpeechRecognizer.addListener('error', (event) => {
+      if (event?.error === 'speech-timeout' || event?.error === 'no-speech') {
+        if (!callEndedRef.current && !isMutedRef.current && !isAiSpeakingRef.current) {
+          startListening();
+        }
+      }
+    });
+
+    return () => {
+      try {
+        subResult?.remove?.();
+      } catch (_) {}
+      try {
+        subError?.remove?.();
+      } catch (_) {}
+    };
+  }, []);
+
+  // 4. Initial Greeting on Call Start
   useEffect(() => {
     callEndedRef.current = false;
+    isMutedRef.current = false;
+    isAiSpeakingRef.current = true;
+    currentStepRef.current = 0;
     audioService.isMuted = false;
     audioService.voiceVolume = callPayload?.voiceVolume ?? 1;
+
+    // Request mic permissions in background
+    if (SpeechRecognizer?.requestPermissionsAsync) {
+      SpeechRecognizer.requestPermissionsAsync().catch(() => {});
+    }
 
     if (ambientSound && ambientSound !== 'none') {
       audioService.startAmbientSound(ambientSound, ambientVolume);
     }
 
-    // Play first line once
-    if (dialogueList && dialogueList.length > 0) {
-      audioService.speakDialogueLine(dialogueList[0], null, voiceProfile);
-    }
+    // Play opening greeting line
+    const openingGreeting =
+      dialogueList && dialogueList.length > 0
+        ? dialogueList[0]
+        : 'Alo em à, anh có việc gấp!';
+    conversationHistoryRef.current = [{ role: 'caller', text: openingGreeting }];
+
+    audioService.speakDialogueLine(
+      openingGreeting,
+      () => {
+        isAiSpeakingRef.current = false;
+        if (!callEndedRef.current && !isMutedRef.current) {
+          startListening();
+        }
+      },
+      voiceProfile
+    );
 
     return () => {
       callEndedRef.current = true;
+      stopListening();
       audioService.stopAll();
     };
   }, []);
@@ -79,24 +230,56 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
   // User-triggered continuation (Discreet tap on avatar/center or Continue button)
   const handleNextDialogue = () => {
     if (callEndedRef.current) return;
-    const nextIdx =
-      currentDialogueIndex < dialogueList.length - 1
-        ? currentDialogueIndex + 1
-        : currentDialogueIndex;
-    setCurrentDialogueIndex(nextIdx);
-    audioService.speakDialogueLine(dialogueList[nextIdx], null, voiceProfile);
+    stopListening();
+    isAiSpeakingRef.current = true;
+
+    currentStepRef.current += 1;
+    const nextLine =
+      currentStepRef.current < dialogueList.length
+        ? dialogueList[currentStepRef.current]
+        : generateOfflineCallReply({
+            caller,
+            scenarioTitle,
+            category,
+            userUtterance: 'vâng',
+            dialogueList,
+            stepIndex: currentStepRef.current,
+          });
+
+    setCurrentDialogueIndex(currentStepRef.current);
+    conversationHistoryRef.current.push({ role: 'caller', text: nextLine });
+    audioService.speakDialogueLine(
+      nextLine,
+      () => {
+        isAiSpeakingRef.current = false;
+        if (!callEndedRef.current && !isMutedRef.current) {
+          startListening();
+        }
+      },
+      voiceProfile
+    );
   };
 
-  // Unambiguous Mute: Only mutes/unmutes audio, never alters dialogue flow
+  // Unambiguous Mute: Stops STT recording and mutes audio
   const handleToggleMute = () => {
     const nextMuted = !isMuted;
     setIsMuted(nextMuted);
+    isMutedRef.current = nextMuted;
     audioService.setMuted(nextMuted);
+
+    if (nextMuted) {
+      stopListening();
+    } else {
+      if (!isAiSpeakingRef.current && !callEndedRef.current) {
+        startListening();
+      }
+    }
   };
 
-  // Immediate hang-up with complete audio termination
+  // Immediate hang-up with complete audio and recording termination
   const handleEndCall = () => {
     callEndedRef.current = true;
+    stopListening();
     audioService.stopAll();
     if (onHangUp) {
       onHangUp({

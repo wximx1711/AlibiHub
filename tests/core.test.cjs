@@ -60,3 +60,32 @@ test('production scheduler restores, fires once, cancels, and never launches in 
   await restarted.scheduleCall({caller:{name:'Mẹ'},delaySeconds:30},()=>count++);
   await restarted.cancelScheduledCall(); assert.equal(restarted.getScheduledInfo().isScheduled,false); detach();
 });
+test('production dynamic roleplay dialogue and offline conversational replies', () => {
+  const load = loader({});
+  const { getVoiceProfile, detectCallerPersona, getDynamicRoleDialogue, generateOfflineCallReply } = load('src/services/dialogueService.js');
+
+  assert.equal(detectCallerPersona({ name: 'Sếp Hoàng', role: 'Trưởng phòng' }), 'BOSS');
+  assert.equal(detectCallerPersona({ name: 'Mẹ Yêu', role: 'Gia đình' }), 'FAMILY_MOM');
+  assert.equal(detectCallerPersona({ name: 'Bố', role: 'Gia đình' }), 'FAMILY_DAD');
+  assert.equal(detectCallerPersona({ name: 'Shipper Nam', role: 'Giao hàng' }), 'SHIPPER');
+  assert.equal(detectCallerPersona({ name: 'Bạn thân', role: 'Bạn bè' }), 'FRIEND');
+
+  const bossVoice = getVoiceProfile({ name: 'Sếp Hoàng' });
+  assert.ok(bossVoice.pitch && bossVoice.rate);
+
+  const replyBoss = generateOfflineCallReply({
+    caller: { name: 'Sếp Hoàng', role: 'Trưởng phòng' },
+    scenarioTitle: 'Server lỗi',
+    category: 'Công sở',
+    userUtterance: 'Dạ em nghe anh ơi',
+  });
+  assert.ok(replyBoss.includes('server') || replyBoss.includes('máy') || replyBoss.includes('lỗi') || replyBoss.length > 10);
+
+  const replyMom = generateOfflineCallReply({
+    caller: { name: 'Mẹ Yêu', role: 'Gia đình' },
+    scenarioTitle: 'Việc gia đình',
+    category: 'Gia đình',
+    userUtterance: 'Con đang trên đường về rồi mẹ ơi!',
+  });
+  assert.ok(replyMom.includes('nhanh') || replyMom.includes('mẹ') || replyMom.includes('cẩn thận'));
+});

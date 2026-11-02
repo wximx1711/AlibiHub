@@ -267,7 +267,7 @@ export function getDynamicRoleDialogue(caller = {}, scenarioTitle = '', category
   return variations[index] || variations[0];
 }
 
-import { generateCallerDialogue } from './aiService';
+import { generateCallerDialogue } from './aiService.js';
 
 /**
  * Fetch real Gemini AI roleplay dialogue if online, otherwise smoothly fallback
@@ -307,5 +307,88 @@ function isGenericPlaceholderDialogue(dialogue) {
     first.includes('dự án đang có lỗi cần em về mở máy') ||
     first.includes('alo con à, về nhà gấp nhé')
   );
+}
+
+/**
+ * Robust offline conversational reply generator matching caller persona and user utterance
+ */
+export function generateOfflineCallReply({
+  caller = {},
+  scenarioTitle = '',
+  category = '',
+  userUtterance = '',
+  dialogueList = [],
+  stepIndex = 1,
+}) {
+  const persona = detectCallerPersona(caller, scenarioTitle, category);
+  const u = (userUtterance || '').toLowerCase().trim();
+
+  const isListeningOrAsking =
+    u.includes('nghe') ||
+    u.includes('vâng') ||
+    u.includes('dạ') ||
+    u.includes('sao thế') ||
+    u.includes('việc gì') ||
+    u.includes('gì đấy') ||
+    u.includes('alo');
+  const isBusyOrReluctant =
+    u.includes('bận') ||
+    u.includes('không được') ||
+    u.includes('chưa') ||
+    u.includes('đang ở') ||
+    u.includes('họp');
+  const isAgreeingOrLeaving =
+    u.includes('về ngay') ||
+    u.includes('qua ngay') ||
+    u.includes('ok') ||
+    u.includes('được rồi') ||
+    u.includes('tới liền') ||
+    u.includes('đang chạy');
+
+  if (persona === 'FAMILY_MOM') {
+    if (isAgreeingOrLeaving) return 'Ừ nhanh con nhé, mẹ đang đợi ở nhà, đi đường cẩn thận nha con!';
+    if (isBusyOrReluctant) return 'Việc gấp của gia đình mà con, không để muộn được đâu, con xin phép về liền đi!';
+    if (isListeningOrAsking) return 'Ở nhà vừa phát sinh việc đột xuất gấp lắm, con thu xếp về ngay mở cửa giúp mẹ nhé!';
+    return 'Con chào mọi người một câu rồi chạy về gấp giúp mẹ nha, mẹ đợi ở nhà!';
+  }
+
+  if (persona === 'FAMILY_DAD') {
+    if (isAgreeingOrLeaving) return 'Ừ, đi cẩn thận nhé, về tới nơi gọi bố ngay.';
+    if (isBusyOrReluctant) return 'Việc gia đình quan trọng đấy con, con sắp xếp về xử lý sớm giúp bố.';
+    if (isListeningOrAsking) return 'Bố đây, việc giấy tờ gia đình cần giải quyết gấp ngay bây giờ, con chạy về nhà nhé.';
+    return 'Bố đang đợi ở nhà, con sắp xếp rồi chạy về ngay nhé.';
+  }
+
+  if (persona === 'BOSS') {
+    if (isAgreeingOrLeaving) return 'Xử lý khẩn trương nhé em, xong việc báo lại anh trên Slack trong 15 phút tới!';
+    if (isBusyOrReluctant) return 'Việc này ảnh hưởng trực tiếp đến hợp đồng lớn đấy, em tìm chỗ mở máy hoặc về công ty gấp!';
+    if (isListeningOrAsking) return 'Hệ thống server đang phát sinh lỗi nghiêm trọng, khách giục gấp, em mở máy kiểm tra ngay!';
+    return 'Rất gấp đấy em, tập trung giải quyết dứt điểm sự cố này giúp anh ngay nhé!';
+  }
+
+  if (persona === 'FRIEND') {
+    if (isAgreeingOrLeaving) return 'Nhanh nhé bạn hiền ơi, tao gửi định vị rồi đấy, tới nơi ới tao liền nha!';
+    if (isBusyOrReluctant) return 'Tao đứng ở đoạn đường vắng này sốt ruột quá, mày té ra đón tao một lát thôi mà!';
+    if (isListeningOrAsking) return 'Xe tao bị hỏng giữa đường rồi, dắt bộ mệt quá, mày chạy qua cứu tao với!';
+    return 'Cứu tao phát nha bồ ơi, đến đón tao nhanh kẻo muộn mất!';
+  }
+
+  if (persona === 'SHIPPER') {
+    if (isAgreeingOrLeaving) return 'Dạ vâng em đang đứng ngay cửa chính đây, anh chị xuống gọi em nhé!';
+    if (isBusyOrReluctant) return 'Bảo vệ họ không nhận đồ này đâu ạ, anh chị tranh thủ xuống 2 phút lấy giùm em với nha!';
+    if (isListeningOrAsking) return 'Dạ em shipper đây ạ, em đang đứng dưới sảnh, anh chị xuống nhận hàng giúp em với!';
+    return 'Anh chị tranh thủ xuống nhận sớm giúp em để em kịp giao các đơn tiếp theo nha!';
+  }
+
+  if (persona === 'DOCTOR') {
+    return 'Bác sĩ trực tiếp dặn bạn cần có mặt để trao đổi kết quả, bạn di chuyển qua phòng khám ngay nhé.';
+  }
+
+  // Fallback to next line in preset dialogue if available
+  if (Array.isArray(dialogueList) && dialogueList.length > stepIndex) {
+    return dialogueList[stepIndex];
+  }
+
+  return 'Có việc khẩn cấp cần giải quyết ngay bây giờ, bạn thu xếp rời khỏi đó rồi qua hỗ trợ liền nhé!';
 }
 

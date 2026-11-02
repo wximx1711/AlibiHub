@@ -282,11 +282,79 @@ Yêu cầu:
   };
 }
 
+/**
+ * AI4 - Dynamic Two-Way Voice Call Responder
+ * Generates immediate, role-consistent spoken reply to user's real-time spoken utterance
+ */
+async function respondToUserCall(apiKey, {
+  callerName = 'Người gọi',
+  callerRole = 'Người quen',
+  scenarioTitle = 'Cuộc gọi mô phỏng',
+  category = 'Khẩn cấp',
+  userUtterance = '',
+  conversationHistory = [],
+}) {
+  if (!userUtterance || !userUtterance.trim()) {
+    throw new Error('Lời thoại người dùng không được để trống.');
+  }
+
+  const historyFormatted = Array.isArray(conversationHistory) && conversationHistory.length > 0
+    ? conversationHistory.slice(-6).map((turn) => {
+        const speaker = turn.role === 'user' ? 'Tôi (Người nghe)' : `${callerName} (Người gọi)`;
+        return `${speaker}: "${turn.text}"`;
+      }).join('\n')
+    : '(Bắt đầu cuộc gọi)';
+
+  const prompt = `
+${SYSTEM_GUARDRAIL}
+
+BẠN ĐANG NHẬP VAI TRONG CUỘC GỌI ĐIỆN THOẠI TRỰC TIẾP:
+- Tên người gọi (Bạn): "${callerName}"
+- Vai trò / Quan hệ với người nghe: "${callerRole}"
+- Tình huống cuộc gọi: "${scenarioTitle}"
+- Thể loại: "${category}"
+
+Lịch sử cuộc gọi gần nhất:
+${historyFormatted}
+
+Người nghe vừa nói vào micro: "${userUtterance.trim()}"
+
+YÊU CẦU ĐẶC BIỆT KHI TRẢ LỜI:
+1. Bạn phải phản hồi trực tiếp bằng TIẾNG VIỆT tự nhiên như đang nói chuyện điện thoại thật.
+2. Xưng hô chuẩn mực phù hợp với vai trò "${callerRole}" và tên "${callerName}" (ví dụ: mẹ xưng "mẹ - con", sếp xưng "anh/chị - em", bạn bè xưng "tao - mày" hoặc "tôi - bạn", shipper xưng "em - anh/chị").
+3. Độ dài ngắn gọn: CHỈ TỪ 1 ĐẾN 2 CÂU NGẮN (tối đa 25-30 từ), khẩn trương, tập trung vào lý do cần người nghe giải quyết hoặc rời đi ngay.
+4. TUYỆT ĐỐI KHÔNG thêm lời giải thích, KHÔNG thêm ngoặc đơn mô tả hành động (ví dụ: không ghi "(thở dài)", "(nói gấp)"), KHÔNG ghi tên người nói ở đầu. Chỉ xuất ra duy nhất câu bạn sẽ nói qua điện thoại.
+`;
+
+  const payload = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 120,
+    },
+  };
+
+  const result = await callGemini(apiKey, payload);
+  let cleanText = (result.text || '').trim()
+    .replace(/^["']|["']$/g, '')
+    .replace(/^\([^)]*\)\s*/g, '')
+    .replace(/^\[[^\]]*\]\s*/g, '')
+    .replace(/^[^:]*:\s*/, '')
+    .trim();
+
+  return {
+    success: true,
+    reply: cleanText,
+    model: result.model,
+  };
+}
+
 module.exports = {
   callGemini,
   generateMessage,
   generateScenario,
   generateDialogue,
+  respondToUserCall,
   PRIMARY_MODEL,
 };
 

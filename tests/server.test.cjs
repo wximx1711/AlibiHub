@@ -10,7 +10,7 @@ test('real HTTP server rejects key changes, invalid JSON, oversized bodies and a
   try {
     const health = await (await fetch(base+'/api/health')).json(); assert.equal(health.hasKey,false); assert.equal('keyPrefix' in health,false);
     assert.equal((await post('/api/config/key',JSON.stringify({apiKey:'unit-test-not-a-key'}))).status,403);
-    for (const path of ['/api/ai/message','/api/ai/scenario']) assert.equal((await post(path,'{}')).status,401);
+    for (const path of ['/api/ai/message', '/api/ai/scenario', '/api/ai/dialogue', '/api/ai/call-reply']) assert.equal((await post(path, '{}')).status, 401);
     for (const value of ['null','[]','{bad']) assert.equal((await post('/api/ai/message',value)).status,400);
     assert.equal((await post('/api/ai/message',JSON.stringify({situation:'x'.repeat(17000)}))).status,413);
     assert.equal((await fetch(base+'/missing')).status,404);

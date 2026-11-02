@@ -1,14 +1,14 @@
-import { getSettings } from './storageService';
-import { text, STYLES, validateAiScenario, proxyUrl } from '../utils/validation';
+import { getSettings } from './storageService.js';
+import { text, STYLES, validateAiScenario, proxyUrl } from '../utils/validation.js';
 let isInFlight = false;
 async function baseUrl() {
   const settings = await getSettings();
   return proxyUrl(process.env.EXPO_PUBLIC_AI_PROXY_URL || settings.proxyUrl || '');
 }
-async function request(path, body) {
+async function request(path, body, customTimeout = null) {
   const url = await baseUrl();
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), body ? 95000 : 6000);
+  const timer = setTimeout(() => controller.abort(), customTimeout || (body ? 95000 : 6000));
   try {
     const response = await fetch(`${url}${path}`, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined, signal: controller.signal });
     const data = await response.json();
@@ -77,4 +77,31 @@ export async function generateCallerDialogue({ callerName, callerRole, scenarioT
     } catch (_) {}
     throw err;
   }
+}
+
+export async function generateCallReply({
+  callerName,
+  callerRole,
+  scenarioTitle,
+  category,
+  userUtterance,
+  conversationHistory = [],
+}) {
+  const sanitizedUtterance = text(userUtterance || '', 'Lời thoại người dùng', 1, 300);
+  const data = await request(
+    '/api/ai/call-reply',
+    {
+      callerName: text(callerName || 'Người gọi', 'Tên người gọi', 1, 100),
+      callerRole: typeof callerRole === 'string' ? callerRole.slice(0, 100) : '',
+      scenarioTitle: typeof scenarioTitle === 'string' ? scenarioTitle.slice(0, 150) : '',
+      category: typeof category === 'string' ? category.slice(0, 50) : '',
+      userUtterance: sanitizedUtterance,
+      conversationHistory: Array.isArray(conversationHistory) ? conversationHistory.slice(-6) : [],
+    },
+    12000
+  );
+  if (data && data.reply) {
+    return { success: true, reply: data.reply, model: data.model };
+  }
+  throw new Error('AI không trả về câu phản hồi hợp lệ.');
 }
