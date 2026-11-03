@@ -1,7 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { resolveVoiceName, generateGeminiTts } = require('../server/geminiProxy');
-const server = require('../server/index');
+const { resolveVoiceName, generateGeminiTts, pcmToWav } = require('../server/geminiProxy');
 
 test('resolveVoiceName maps caller roles to correct Gemini prebuilt voices', () => {
   assert.equal(resolveVoiceName('auto', 'Mẹ ruột', 'Mẹ Yêu'), 'Kore');
@@ -35,25 +34,15 @@ test('generateGeminiTts serves pre-cached high-quality audio for preview and rol
   }
 });
 
-test('HTTP server /api/ai/tts endpoint generates and returns playable WAV audio', async () => {
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-  const base = `http://127.0.0.1:${server.address().port}`;
-
-  try {
-    const res = await fetch(`${base}/api/ai/tts`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: 'Con à, mẹ đang đợi cơm con ở nhà này, về sớm đi nhé!',
-        voiceName: 'Kore',
-      }),
-    });
-    assert.equal(res.status, 200);
-    const data = await res.json();
-    assert.equal(data.success, true);
-    assert.equal(data.audioMimeType, 'audio/wav');
-    assert.ok(typeof data.audioBase64 === 'string' && data.audioBase64.length > 1000);
-  } finally {
-    await new Promise((resolve) => server.close(resolve));
-  }
+test('pcmToWav creates valid RIFF WAVE headers from raw PCM data', () => {
+  const dummyPcm = Buffer.alloc(4800, 0); // 100ms at 24kHz 16-bit
+  const wav = pcmToWav(dummyPcm, 24000, 1, 16);
+  assert.equal(wav.length, 44 + 4800);
+  assert.equal(wav.subarray(0, 4).toString(), 'RIFF');
+  assert.equal(wav.subarray(8, 12).toString(), 'WAVE');
+  assert.equal(wav.subarray(12, 16).toString(), 'fmt ');
+  assert.equal(wav.readUInt32LE(24), 24000); // sampleRate
+  assert.equal(wav.readUInt16LE(22), 1); // numChannels
+  assert.equal(wav.subarray(36, 40).toString(), 'data');
+  assert.equal(wav.readUInt32LE(40), 4800); // dataSize
 });

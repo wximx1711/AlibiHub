@@ -303,6 +303,7 @@ async function respondToUserCall(apiKey, {
   category = 'Khẩn cấp',
   userUtterance = '',
   conversationHistory = [],
+  voiceName = 'auto',
 }) {
   if (!userUtterance || !userUtterance.trim()) {
     throw new Error('Lời thoại người dùng không được để trống.');
@@ -595,6 +596,7 @@ module.exports = {
   respondToUserCall,
   generateGeminiTts,
   resolveVoiceName,
+  pcmToWav,
   PRIMARY_MODEL,
   TTS_PRIMARY_MODEL,
   GEMINI_VOICES,
