@@ -71,7 +71,7 @@ export default function IncomingCallScreen({
     caller.initials || caller.name?.substring(0, 2)?.toUpperCase() || 'AL';
 
   // ----------------------------------------------------
-  // 1. ZALO STYLE (Reference Image 4)
+  // 1. ZALO STYLE
   // ----------------------------------------------------
   if (appearance === 'zalo') {
     return (
@@ -117,8 +117,7 @@ export default function IncomingCallScreen({
               onPress={handleDecline}
               activeOpacity={0.8}
             >
-              <Text style={styles.phoneIconRotate}>📞</Text>
-              <CallIcon name="phone_hangup" size={32} />
+              <CallIcon name="phone_hangup" size={30} />
             </TouchableOpacity>
             <Text style={styles.zaloActionLabel} onPress={handleDecline}>
               Từ chối
@@ -131,8 +130,7 @@ export default function IncomingCallScreen({
               onPress={handleAccept}
               activeOpacity={0.8}
             >
-              <Text style={styles.phoneIconNormal}>📞</Text>
-              <CallIcon name="phone_accept" size={32} />
+              <CallIcon name="phone_accept" size={30} />
             </TouchableOpacity>
             <Text style={styles.zaloActionLabel} onPress={handleAccept}>
               Trả lời
@@ -144,133 +142,74 @@ export default function IncomingCallScreen({
   }
 
   // ----------------------------------------------------
-  // 2. MESSENGER STYLE (Reference Image 5)
+  // 2. MESSENGER STYLE (Target Image 2 Palette & Header)
   // ----------------------------------------------------
   if (appearance === 'messenger') {
     return (
       <View style={[styles.container, styles.messengerContainer]}>
-        <StatusBar barStyle="light-content" backgroundColor="#1A1829" />
+        <StatusBar barStyle="dark-content" backgroundColor="#DAD8C3" />
 
-        {/* Top Spacer / Status Bar Area */}
-        <View style={styles.messengerTopSpacer}>
-          <Text style={styles.messengerStatusTime}>9:41</Text>
+        {/* Floating Top Bar (Matching Image 2) */}
+        <View style={styles.messengerTopBar}>
+          <View style={styles.messengerTopLeft}>
+            <CallIcon name="ic_minimize" size={20} tintColor="#3A3B35" />
+          </View>
+          <View style={styles.messengerTopRight}>
+            <CallIcon name="ic_add_user" size={22} tintColor="#3A3B35" style={{ marginRight: 16 }} />
+            <CallIcon name="ic_more_vert" size={22} tintColor="#3A3B35" />
+          </View>
         </View>
 
-        {/* Center Section: Identity */}
+        {/* Center Section: Rounded Avatar & Caller Info */}
         <View style={styles.messengerCenter}>
+          <Animated.View
+            style={[
+              styles.messengerAvatarWrap,
+              { transform: [{ scale: pulseAnim }] },
+            ]}
+          >
+            <View style={styles.messengerAvatarCircle}>
+              {caller.avatarUrl ? (
+                <Image
+                  source={{ uri: caller.avatarUrl }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <Text style={styles.messengerAvatarInitials}>{initials}</Text>
+              )}
+            </View>
+          </Animated.View>
+
           <Text style={styles.messengerCallerName} numberOfLines={1}>
             {caller.name}
           </Text>
-
-          <View style={styles.messengerTagRow}>
-            <View style={styles.messengerLogoDot}>
-              <Text style={styles.messengerLogoIcon}>⚡</Text>
-            </View>
-            <Text style={styles.messengerSubtitle}>Messenger Audio...</Text>
-          </View>
+          <Text style={styles.messengerSubtitle}>Messenger: Cuộc gọi đến...</Text>
         </View>
 
-        {/* Bottom Actions */}
-        <View style={styles.messengerBottom}>
-          {/* Secondary Action: Remind me */}
-          <View style={styles.secondaryActionRow}>
-            <View style={styles.secondaryActionItem}>
-              <Text style={styles.secondaryActionIcon}>⏰</Text>
-              <Text style={styles.secondaryActionText}>Nhắc tôi</Text>
-            </View>
-          </View>
-
-          {/* Decline & Accept Row */}
-          <View style={styles.messengerButtonsRow}>
-            <View style={styles.actionCol}>
-              <TouchableOpacity
-                style={[styles.callCircleBtn, styles.declineCircleBtn]}
-                onPress={handleDecline}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.btnIconX}>✕</Text>
-                <CallIcon name="phone_hangup" size={32} />
-              </TouchableOpacity>
-              <Text style={styles.actionLabelText} onPress={handleDecline}>
-                Từ chối
-              </Text>
-            </View>
-
-            <View style={styles.actionCol}>
-              <TouchableOpacity
-                style={[styles.callCircleBtn, styles.messengerAcceptBtn]}
-                onPress={handleAccept}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.btnIconCheck}>✓</Text>
-                <CallIcon name="phone_accept" size={32} />
-              </TouchableOpacity>
-              <Text style={styles.actionLabelText} onPress={handleAccept}>
-                Trả lời
-              </Text>
-            </View>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  // ----------------------------------------------------
-  // 3. IOS STYLE (Reference Image 3 Right)
-  // ----------------------------------------------------
-  if (appearance === 'ios') {
-    return (
-      <View style={[styles.container, styles.iosContainer]}>
-        <StatusBar barStyle="light-content" backgroundColor="#000000" />
-
-        {/* Top Section */}
-        <View style={styles.iosTop}>
-          <Text style={styles.iosCallerName} numberOfLines={1}>
-            {caller.name}
-          </Text>
-          <Text style={styles.iosSubtext}>
-            {caller.phoneNumber || caller.role || 'di động'}
-          </Text>
-        </View>
-
-        {/* Secondary Actions: Remind Me & Message */}
-        <View style={styles.iosSecondaryRow}>
-          <View style={styles.iosSecondaryItem}>
-            <Text style={styles.iosSecondaryIcon}>⏰</Text>
-            <Text style={styles.iosSecondaryText}>Nhắc tôi</Text>
-          </View>
-          <View style={styles.iosSecondaryItem}>
-            <Text style={styles.iosSecondaryIcon}>💬</Text>
-            <Text style={styles.iosSecondaryText}>Tin nhắn</Text>
-          </View>
-        </View>
-
-        {/* Bottom Action Buttons */}
-        <View style={styles.iosBottomActions}>
+        {/* Bottom Actions: Decline (Red) & Accept (Green) */}
+        <View style={styles.messengerBottomRow}>
           <View style={styles.actionCol}>
             <TouchableOpacity
-              style={[styles.callCircleBtn, styles.declineCircleBtn]}
+              style={[styles.callCircleBtn, styles.messengerDeclineBtn]}
               onPress={handleDecline}
               activeOpacity={0.8}
             >
-              <Text style={styles.phoneIconRotate}>📞</Text>
-              <CallIcon name="phone_hangup" size={32} />
+              <CallIcon name="phone_hangup" size={30} />
             </TouchableOpacity>
-            <Text style={styles.actionLabelText} onPress={handleDecline}>
+            <Text style={styles.messengerActionLabel} onPress={handleDecline}>
               Từ chối
             </Text>
           </View>
 
           <View style={styles.actionCol}>
             <TouchableOpacity
-              style={[styles.callCircleBtn, styles.acceptCircleBtn]}
+              style={[styles.callCircleBtn, styles.messengerAcceptBtn]}
               onPress={handleAccept}
               activeOpacity={0.8}
             >
-              <Text style={styles.phoneIconNormal}>📞</Text>
-              <CallIcon name="phone_accept" size={32} />
+              <CallIcon name="phone_accept" size={30} />
             </TouchableOpacity>
-            <Text style={styles.actionLabelText} onPress={handleAccept}>
+            <Text style={styles.messengerActionLabel} onPress={handleAccept}>
               Trả lời
             </Text>
           </View>
@@ -280,7 +219,79 @@ export default function IncomingCallScreen({
   }
 
   // ----------------------------------------------------
-  // 4. ANDROID STYLE (Reference Image 1 - Default)
+  // 3. IOS STYLE (Target Image 3)
+  // ----------------------------------------------------
+  if (appearance === 'ios') {
+    return (
+      <View style={[styles.container, styles.iosContainer]}>
+        <StatusBar barStyle="light-content" backgroundColor="#141414" />
+
+        {/* Top Header / Status Time */}
+        <View style={styles.iosTopStatus}>
+          <Text style={styles.iosTimeText}>17:04</Text>
+        </View>
+
+        {/* Caller Info: Bold White Title & Subtitle */}
+        <View style={styles.iosTop}>
+          <Text style={styles.iosCallerName} numberOfLines={1}>
+            {caller.phoneNumber || caller.name}
+          </Text>
+          <Text style={styles.iosSubtext}>
+            {caller.phoneNumber ? caller.name : (caller.role || 'di động')}
+          </Text>
+        </View>
+
+        {/* Secondary Actions: Alarm Clock & Message */}
+        <View style={styles.iosSecondaryRow}>
+          <View style={styles.iosSecondaryItem}>
+            <CallIcon name="ic_reminder" size={26} tintColor="#FFFFFF" />
+            <Text style={styles.iosSecondaryText}>Nhắc tôi</Text>
+          </View>
+          <View style={styles.iosSecondaryItem}>
+            <CallIcon name="ic_message" size={26} tintColor="#FFFFFF" />
+            <Text style={styles.iosSecondaryText}>Tin nhắn</Text>
+          </View>
+        </View>
+
+        {/* Bottom Actions: Decline ("Từ chối") & Accept ("Chấp nhận") */}
+        <View style={styles.iosBottomActions}>
+          <View style={styles.actionCol}>
+            <TouchableOpacity
+              style={[styles.callCircleBtn, styles.iosDeclineBtn]}
+              onPress={handleDecline}
+              activeOpacity={0.8}
+            >
+              <CallIcon name="phone_hangup" size={30} />
+            </TouchableOpacity>
+            <Text style={styles.iosActionLabel} onPress={handleDecline}>
+              Từ chối
+            </Text>
+          </View>
+
+          <View style={styles.actionCol}>
+            <TouchableOpacity
+              style={[styles.callCircleBtn, styles.iosAcceptBtn]}
+              onPress={handleAccept}
+              activeOpacity={0.8}
+            >
+              <CallIcon name="phone_accept" size={30} />
+            </TouchableOpacity>
+            <Text style={styles.iosActionLabel} onPress={handleAccept}>
+              Chấp nhận
+            </Text>
+          </View>
+        </View>
+
+        {/* White iOS Home Indicator */}
+        <View style={styles.iosHomeIndicatorWrap}>
+          <View style={styles.iosHomeIndicator} />
+        </View>
+      </View>
+    );
+  }
+
+  // ----------------------------------------------------
+  // 4. ANDROID STYLE (Fixed Image 1 - Clean Handset Icons, No Emojis)
   // ----------------------------------------------------
   return (
     <View style={[styles.container, styles.androidContainer]}>
@@ -304,9 +315,8 @@ export default function IncomingCallScreen({
               <Text style={styles.androidAvatarInitials}>{initials}</Text>
             )}
           </View>
-          {/* Small Green Phone Badge (Image 1) */}
+          {/* Small Green Phone Badge (Clean CallIcon only) */}
           <View style={styles.androidPhoneBadge}>
-            <Text style={styles.androidBadgePhoneIcon}>📞</Text>
             <CallIcon name="phone_accept" size={14} />
           </View>
         </View>
@@ -316,12 +326,11 @@ export default function IncomingCallScreen({
         </Text>
         <Text style={styles.androidCallingStatus}>Đang gọi đến...</Text>
 
-        {/* Green pill tag: Mobile / Caller Role */}
+        {/* Green pill tag: Mobile / Caller Role (Clean CallIcon only) */}
         <View style={styles.androidMobilePill}>
-          <Text style={styles.androidPillIcon}>📞</Text>
           <CallIcon name="phone_accept" size={12} style={{ marginRight: 6 }} />
           <Text style={styles.androidPillText}>
-            {caller.role || caller.phoneNumber || 'Mobile'}
+            {caller.role || caller.phoneNumber || 'Sự cố gia đình'}
           </Text>
         </View>
       </View>
@@ -334,15 +343,14 @@ export default function IncomingCallScreen({
             onPress={handleDecline}
             activeOpacity={0.8}
           >
-            <Text style={styles.phoneIconRotate}>📞</Text>
-            <CallIcon name="phone_hangup" size={32} />
+            <CallIcon name="phone_hangup" size={30} />
           </TouchableOpacity>
           <Text style={styles.actionLabelText} onPress={handleDecline}>
             Từ chối
           </Text>
         </View>
 
-        {/* Center Ripple Prompt (Image 1) */}
+        {/* Center Ripple Prompt */}
         <Animated.View
           style={[
             styles.androidRippleCenter,
@@ -358,8 +366,7 @@ export default function IncomingCallScreen({
             onPress={handleAccept}
             activeOpacity={0.8}
           >
-            <Text style={styles.phoneIconNormal}>📞</Text>
-            <CallIcon name="phone_accept" size={32} />
+            <CallIcon name="phone_accept" size={30} />
           </TouchableOpacity>
           <Text style={styles.actionLabelText} onPress={handleAccept}>
             Trả lời
@@ -386,9 +393,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   callCircleBtn: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.xs,
@@ -404,28 +411,6 @@ const styles = StyleSheet.create({
   acceptCircleBtn: {
     backgroundColor: '#22C55E',
     shadowColor: '#22C55E',
-  },
-  phoneIconImg: {
-    width: 32,
-    height: 32,
-  },
-  androidBadgePhoneImg: {
-    width: 14,
-    height: 14,
-  },
-  androidPillIconImg: {
-    width: 13,
-    height: 13,
-    marginRight: 6,
-  },
-  phoneIconNormal: {
-    color: '#FFFFFF',
-    fontSize: 26,
-  },
-  phoneIconRotate: {
-    color: '#FFFFFF',
-    fontSize: 26,
-    transform: [{ rotate: '135deg' }],
   },
   actionLabelText: {
     color: '#FFFFFF',
@@ -501,152 +486,174 @@ const styles = StyleSheet.create({
   },
 
   // ----------------------------------------------------
-  // MESSENGER STYLES
+  // MESSENGER STYLES (Target Image 2 Theme)
   // ----------------------------------------------------
   messengerContainer: {
-    backgroundColor: '#171520',
+    backgroundColor: '#DAD8C3',
   },
-  messengerTopSpacer: {
+  messengerTopBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingTop: Platform.OS === 'ios' ? 8 : spacing.xs,
   },
-  messengerStatusTime: {
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 14,
-    fontWeight: typography.fontWeights.bold,
+  messengerTopLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  messengerTopRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   messengerCenter: {
     alignItems: 'center',
-    marginTop: spacing.xl,
+    marginTop: spacing.xxl,
+  },
+  messengerAvatarWrap: {
+    marginBottom: spacing.lg,
+  },
+  messengerAvatarCircle: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    backgroundColor: '#C5C3AF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#E8E6D6',
+  },
+  messengerAvatarInitials: {
+    color: '#3A3B35',
+    fontSize: 38,
+    fontWeight: typography.fontWeights.bold,
   },
   messengerCallerName: {
-    color: '#FFFFFF',
+    color: '#262722',
     fontSize: typography.fontSizes.xxl + 2,
     fontWeight: typography.fontWeights.bold,
     marginBottom: spacing.xs,
   },
-  messengerTagRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  messengerLogoDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#A855F7',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 6,
-  },
-  messengerLogoIcon: {
-    fontSize: 9,
-    color: '#FFFFFF',
-  },
   messengerSubtitle: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: '#55564E',
     fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.medium,
   },
-  messengerBottom: {
-    paddingBottom: spacing.xl,
-  },
-  secondaryActionRow: {
-    alignItems: 'center',
-    marginBottom: spacing.xxl,
-  },
-  secondaryActionItem: {
-    alignItems: 'center',
-  },
-  secondaryActionIcon: {
-    fontSize: 20,
-    marginBottom: 4,
-  },
-  secondaryActionText: {
-    color: 'rgba(255, 255, 255, 0.75)',
-    fontSize: typography.fontSizes.xs,
-  },
-  messengerButtonsRow: {
+  messengerBottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xxl,
+  },
+  messengerDeclineBtn: {
+    backgroundColor: '#FA3E3E',
+    shadowColor: '#FA3E3E',
   },
   messengerAcceptBtn: {
-    backgroundColor: '#0084FF',
-    shadowColor: '#0084FF',
+    backgroundColor: '#34A853',
+    shadowColor: '#34A853',
   },
-  btnIconX: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  btnIconCheck: {
-    color: '#FFFFFF',
-    fontSize: 26,
-    fontWeight: 'bold',
+  messengerActionLabel: {
+    color: '#262722',
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.medium,
+    marginTop: 2,
   },
 
   // ----------------------------------------------------
-  // IOS STYLES
+  // IOS STYLES (Target Image 3)
   // ----------------------------------------------------
   iosContainer: {
-    backgroundColor: '#000000',
+    backgroundColor: '#141414',
+  },
+  iosTopStatus: {
+    alignItems: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingTop: Platform.OS === 'ios' ? 0 : spacing.xs,
+  },
+  iosTimeText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: typography.fontWeights.semiBold,
   },
   iosTop: {
     alignItems: 'center',
-    paddingTop: spacing.xxl,
+    marginTop: spacing.xl,
+    marginBottom: spacing.xxl,
   },
   iosCallerName: {
     color: '#FFFFFF',
-    fontSize: typography.fontSizes.xxl + 4,
-    fontWeight: typography.fontWeights.semiBold,
-    marginBottom: 4,
+    fontSize: 32,
+    fontWeight: '700',
+    marginBottom: 6,
     letterSpacing: 0.3,
   },
   iosSubtext: {
-    color: 'rgba(255, 255, 255, 0.55)',
-    fontSize: typography.fontSizes.md,
+    color: '#8E8E93',
+    fontSize: 18,
+    fontWeight: '400',
   },
   iosSecondaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingHorizontal: spacing.xxl,
-    marginBottom: spacing.xl,
+    paddingHorizontal: 40,
+    marginBottom: spacing.xxl,
   },
   iosSecondaryItem: {
     alignItems: 'center',
   },
-  iosSecondaryIcon: {
-    fontSize: 22,
-    marginBottom: 4,
-  },
   iosSecondaryText: {
-    color: 'rgba(255, 255, 255, 0.65)',
-    fontSize: typography.fontSizes.xs,
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '400',
+    marginTop: 6,
   },
   iosBottomActions: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingBottom: spacing.xxl,
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: 36,
+    marginBottom: spacing.xl,
+  },
+  iosDeclineBtn: {
+    backgroundColor: '#EB5545',
+    shadowColor: '#EB5545',
+  },
+  iosAcceptBtn: {
+    backgroundColor: '#34C759',
+    shadowColor: '#34C759',
+  },
+  iosActionLabel: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '400',
+    marginTop: 4,
+  },
+  iosHomeIndicatorWrap: {
+    alignItems: 'center',
+    paddingBottom: 8,
+  },
+  iosHomeIndicator: {
+    width: 134,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#FFFFFF',
   },
 
   // ----------------------------------------------------
-  // ANDROID STYLES (Default)
+  // ANDROID STYLES (Fixed Image 1)
   // ----------------------------------------------------
   androidContainer: {
-    backgroundColor: '#192229',
+    backgroundColor: '#1A2228',
   },
   androidTop: {
     alignItems: 'flex-start',
     paddingHorizontal: spacing.sm,
     paddingTop: spacing.xs,
   },
-  androidTimeText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: typography.fontWeights.medium,
-  },
   androidCenter: {
     alignItems: 'center',
+    marginTop: spacing.lg,
   },
   androidAvatarWrap: {
     position: 'relative',
@@ -679,11 +686,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#192229',
-  },
-  androidBadgePhoneIcon: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    borderColor: '#1A2228',
   },
   androidCallerName: {
     color: '#FFFFFF',
@@ -701,15 +704,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(34, 197, 94, 0.2)',
     paddingHorizontal: spacing.md,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: borderRadius.pill,
     borderWidth: 1,
     borderColor: 'rgba(34, 197, 94, 0.5)',
-  },
-  androidPillIcon: {
-    color: '#4ADE80',
-    fontSize: 12,
-    marginRight: 4,
   },
   androidPillText: {
     color: '#4ADE80',

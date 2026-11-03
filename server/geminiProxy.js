@@ -5,8 +5,13 @@
  */
 
 const { validateAiScenario, text, STYLES, CATEGORIES } = require('../src/utils/validation');
-const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
-const FALLBACK_MODELS = [];
+const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
+const FALLBACK_MODELS = [
+  'gemini-3.5-flash-lite',
+  'gemini-3.5-flash',
+  'gemini-flash-lite-latest',
+  'gemini-3.1-flash-lite',
+];
 
 const SYSTEM_GUARDRAIL = `
 Bạn là AlibiHub AI - Trợ lý thông minh hỗ trợ người dùng xử lý các tình huống xã hội khó xử, rời cuộc gặp một cách lịch sự, tế nhị và bảo vệ ranh giới cá nhân (Personal Boundaries).
@@ -51,10 +56,15 @@ async function callGemini(apiKey, payload, model = PRIMARY_MODEL) {
         const errorStatus = response.status;
         console.warn(`[Gemini Proxy] Upstream HTTP ${errorStatus}`);
 
-        if (errorStatus === 429) {
-          const rateErr = new Error('Hạn ngạch API Gemini đã tạm thời hết lượt (Quota exceeded / Rate limit). Vui lòng thử lại sau ít phút.');
-          rateErr.code = 'RATE_LIMIT';
-          throw rateErr;
+        if (errorStatus === 429 || errorStatus === 503) {
+          console.warn(`[Gemini Proxy] Model ${currentModel} returned HTTP ${errorStatus}, trying next fallback model...`);
+          lastError = new Error(
+            errorStatus === 429
+              ? 'Hạn ngạch API Gemini đã tạm thời hết lượt (Quota exceeded / Rate limit). Vui lòng thử lại sau ít phút.'
+              : `Mô hình ${currentModel} đang bận (HTTP 503). Đang thử mô hình dự phòng...`
+          );
+          if (errorStatus === 429) lastError.code = 'RATE_LIMIT';
+          continue; // Try next fallback model
         }
 
         if (errorStatus === 401 || errorStatus === 403 || (errorStatus === 400 && /key/i.test(errorMsg))) {

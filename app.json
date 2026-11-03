@@ -44,12 +44,17 @@
       [
         "expo-audio",
         {
-          "microphonePermission": false,
-          "recordAudioAndroid": false
+          "microphonePermission": "Cho phép AlibiHub sử dụng micro để hội thoại mô phỏng với người gọi.",
+          "recordAudioAndroid": true
         }
       ],
       "expo-asset",
-      "expo-speech-recognition"
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Cho phép AlibiHub sử dụng micro để hội thoại hai chiều trong cuộc gọi."
+        }
+      ]
     ],
     "extra": {
       "eas": {

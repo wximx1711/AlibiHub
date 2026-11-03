@@ -103,7 +103,7 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
     }
   };
 
-  // Anti-echo acoustic buffer: Wait 450ms after TTS ends before opening mic
+  // Anti-echo acoustic buffer: Wait 500ms after TTS ends before opening mic
   const onCallerFinishedSpeaking = () => {
     isAiSpeakingRef.current = false;
     if (callEndedRef.current || isMutedRef.current) return;
@@ -112,7 +112,7 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
       if (!callEndedRef.current && !isMutedRef.current && !isAiSpeakingRef.current) {
         startListening();
       }
-    }, 450);
+    }, 500);
   };
 
   const handleUserSpeech = async (userText) => {
@@ -179,29 +179,21 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
       }
     });
 
-    const subError = SpeechRecognizer.addListener('error', (event) => {
-      // Prevent rapid zero-delay restart loop which causes physical audio DAC clicks ("tách tách tách")
-      if (event?.error === 'speech-timeout' || event?.error === 'no-speech') {
-        if (!callEndedRef.current && !isMutedRef.current && !isAiSpeakingRef.current) {
-          clearTimeout(sttRestartTimerRef.current);
-          sttRestartTimerRef.current = setTimeout(() => {
-            if (!callEndedRef.current && !isMutedRef.current && !isAiSpeakingRef.current) {
-              startListening();
-            }
-          }, 1200);
-        }
-      }
+    const subError = SpeechRecognizer.addListener('error', () => {
+      // Cleanly conclude listening on timeout/silence without an aggressive DAC restart loop
+      isListeningRef.current = false;
+    });
+
+    const subEnd = SpeechRecognizer.addListener('end', () => {
+      isListeningRef.current = false;
     });
 
     return () => {
       clearTimeout(sttRestartTimerRef.current);
       clearTimeout(micDelayTimerRef.current);
-      try {
-        subResult?.remove?.();
-      } catch (_) {}
-      try {
-        subError?.remove?.();
-      } catch (_) {}
+      try { subResult?.remove?.(); } catch (_) {}
+      try { subError?.remove?.(); } catch (_) {}
+      try { subEnd?.remove?.(); } catch (_) {}
     };
   }, []);
 
@@ -421,20 +413,21 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
   }
 
   // ----------------------------------------------------
-  // 2. MESSENGER ACTIVE CALL
+  // 2. MESSENGER ACTIVE CALL (Target Image 2)
   // ----------------------------------------------------
   if (isMessenger) {
     return (
       <View style={[styles.container, styles.messengerContainer]}>
-        <StatusBar barStyle="light-content" backgroundColor="#2C2D32" />
+        <StatusBar barStyle="dark-content" backgroundColor="#DAD8C3" />
 
-        {/* Top Header: Back Arrow & Camera Off Toggle */}
-        <View style={styles.messengerTopHeader}>
-          <TouchableOpacity onPress={handleEndCall} activeOpacity={0.7} style={styles.messengerBackBtn}>
-            <Text style={styles.messengerBackArrow}>←</Text>
-          </TouchableOpacity>
-          <View style={styles.messengerCameraTogglePill}>
-            <Text style={styles.messengerCameraToggleIcon}>📹</Text>
+        {/* Floating Top Bar (Matching Image 2) */}
+        <View style={styles.messengerTopBar}>
+          <View style={styles.messengerTopLeft}>
+            <CallIcon name="ic_minimize" size={20} tintColor="#3A3B35" />
+          </View>
+          <View style={styles.messengerTopRight}>
+            <CallIcon name="ic_add_user" size={22} tintColor="#3A3B35" style={{ marginRight: 18 }} />
+            <CallIcon name="ic_more_vert" size={22} tintColor="#3A3B35" />
           </View>
         </View>
 
@@ -455,70 +448,80 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
           <Text style={styles.messengerCallerName} numberOfLines={1}>
             {caller.name}
           </Text>
-          <Text style={styles.messengerTimer}>{formatTime(seconds)}</Text>
+          <Text style={styles.messengerCallingStatus}>
+            {seconds < 3 ? 'Đang gọi...' : formatTime(seconds)}
+          </Text>
         </TouchableOpacity>
 
-        {/* Bottom Dock */}
+        {/* Bottom Dock: 5 circular buttons on a single row (Target Image 2) */}
         <View style={styles.messengerBottomDock}>
-          <View style={styles.messengerDockHandle} />
-          <View style={styles.messengerDockButtonsRow}>
-            {/* Add person */}
-            <TouchableOpacity style={styles.messengerDockBtnDark} activeOpacity={0.7}>
-              <Text style={styles.messengerDockIconLight}>+👤</Text>
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.messengerDockBtnDark}
+            activeOpacity={0.7}
+          >
+            <CallIcon name="ic_video_off" size={24} />
+          </TouchableOpacity>
 
-            {/* Speaker */}
-            <TouchableOpacity
-              style={[styles.messengerDockBtnWhite, isSpeaker && styles.messengerDockBtnWhiteActive]}
-              onPress={async () => {
-                try {
-                  await audioService.setSpeaker(!isSpeaker);
-                  setIsSpeaker(!isSpeaker);
-                } catch {
-                  Alert.alert('Âm thanh', 'Thiết bị không hỗ trợ chuyển loa.');
-                }
-              }}
-              activeOpacity={0.7}
-            >
-              <CallIcon name="ic_speaker" size={24} tintColor="#000000" />
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.messengerDockBtnDark, isMuted && styles.messengerDockBtnDarkActive]}
+            onPress={handleToggleMute}
+            activeOpacity={0.7}
+            testID="mute-btn"
+            accessibilityLabel={isMuted ? 'Đã tắt tiếng' : 'Tắt tiếng'}
+          >
+            <CallIcon name={isMuted ? 'ic_mic_off' : 'ic_mic'} size={24} />
+          </TouchableOpacity>
 
-            {/* Mic / Mute (Unambiguous) */}
-            <TouchableOpacity
-              style={[styles.messengerDockBtnWhite, isMuted && styles.messengerDockBtnWhiteActive]}
-              onPress={handleToggleMute}
-              activeOpacity={0.7}
-              testID="mute-btn"
-              accessibilityLabel={isMuted ? 'Đã tắt tiếng' : 'Tắt tiếng'}
-            >
-              <CallIcon name={isMuted ? 'ic_mic_off' : 'ic_mic'} size={24} tintColor="#000000" />
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.messengerDockBtnDark}
+            activeOpacity={0.7}
+          >
+            <CallIcon name="ic_effects" size={24} />
+          </TouchableOpacity>
 
-            {/* End Call (Icon only) */}
-            <TouchableOpacity
-              style={styles.messengerDockBtnRed}
-              onPress={handleEndCall}
-              activeOpacity={0.85}
-              testID="end-call-btn"
-              accessibilityLabel="KẾT THÚC CUỘC GỌI"
-            >
-              <CallIcon name="phone_hangup" size={28} />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={[styles.messengerDockBtnDark, isSpeaker && styles.messengerDockBtnDarkActive]}
+            onPress={async () => {
+              try {
+                await audioService.setSpeaker(!isSpeaker);
+                setIsSpeaker(!isSpeaker);
+              } catch {
+                Alert.alert('Âm thanh', 'Thiết bị không hỗ trợ chuyển loa.');
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <CallIcon name="ic_speaker" size={24} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.messengerDockBtnRed}
+            onPress={handleEndCall}
+            activeOpacity={0.85}
+            testID="end-call-btn"
+            accessibilityLabel="KẾT THÚC CUỘC GỌI"
+          >
+            <CallIcon name="phone_hangup" size={28} />
+          </TouchableOpacity>
         </View>
       </View>
     );
   }
 
   // ----------------------------------------------------
-  // 3. IOS ACTIVE CALL
+  // 3. IOS ACTIVE CALL (Target Image 4)
   // ----------------------------------------------------
   if (isIos) {
     return (
       <View style={[styles.container, styles.iosContainer]}>
-        <StatusBar barStyle="light-content" backgroundColor="#000000" />
+        <StatusBar barStyle="light-content" backgroundColor="#141414" />
 
-        {/* Top: Tap to discreetly continue dialogue */}
+        {/* Top Header / Status Time */}
+        <View style={styles.iosTopStatus}>
+          <Text style={styles.iosTimeText}>17:04</Text>
+        </View>
+
+        {/* Top: Caller Info & Call Duration */}
         <TouchableOpacity
           style={styles.iosTop}
           activeOpacity={0.9}
@@ -526,15 +529,15 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
           testID="caller-avatar-touch"
         >
           <Text style={styles.iosCallerName} numberOfLines={1}>
-            {caller.name}
+            {caller.phoneNumber || caller.name}
           </Text>
           <Text style={styles.iosTimer}>{formatTime(seconds)}</Text>
         </TouchableOpacity>
 
-        {/* 6-Circle Grid */}
+        {/* 6-Grid Control Pad (Target Image 4) */}
         <View style={styles.iosGridSection}>
           <View style={styles.iosGridRow}>
-            {/* Mute (Unambiguous) */}
+            {/* 1. Tắt tiếng */}
             <View style={styles.iosGridItem}>
               <TouchableOpacity
                 style={[styles.iosCircleBtn, isMuted && styles.iosCircleBtnActive]}
@@ -545,24 +548,24 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
               >
                 <CallIcon
                   name={isMuted ? 'ic_mic_off' : 'ic_mic'}
-                  size={24}
+                  size={28}
                   tintColor={isMuted ? '#000000' : '#FFFFFF'}
                 />
               </TouchableOpacity>
               <Text style={styles.iosGridLabel} onPress={handleToggleMute}>
-                {isMuted ? 'Đã tắt tiếng' : 'Tắt tiếng'}
+                tắt tiếng
               </Text>
             </View>
 
-            {/* Keypad */}
+            {/* 2. Bàn phím */}
             <View style={styles.iosGridItem}>
               <View style={styles.iosCircleBtn}>
-                <CallIcon name="ic_keypad" size={24} />
+                <CallIcon name="ic_keypad" size={28} />
               </View>
               <Text style={styles.iosGridLabel}>bàn phím</Text>
             </View>
 
-            {/* Audio / Speaker */}
+            {/* 3. Âm thanh */}
             <View style={styles.iosGridItem}>
               <TouchableOpacity
                 style={[styles.iosCircleBtn, isSpeaker && styles.iosCircleBtnActive]}
@@ -578,48 +581,48 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
               >
                 <CallIcon
                   name="ic_speaker"
-                  size={24}
+                  size={28}
                   tintColor={isSpeaker ? '#000000' : '#FFFFFF'}
                 />
               </TouchableOpacity>
-              <Text style={styles.iosGridLabel}>loa ngoài</Text>
+              <Text style={styles.iosGridLabel}>âm thanh</Text>
             </View>
           </View>
 
           <View style={styles.iosGridRow}>
-            {/* Add Call */}
+            {/* 4. Thêm cuộc gọi */}
             <View style={styles.iosGridItem}>
               <View style={styles.iosCircleBtn}>
-                <Text style={styles.iosGridIconText}>+</Text>
+                <CallIcon name="ic_add" size={28} />
               </View>
-              <Text style={styles.iosGridLabel}>thêm</Text>
+              <Text style={styles.iosGridLabel}>thêm cuộc gọi</Text>
             </View>
 
-            {/* FaceTime */}
+            {/* 5. FaceTime */}
             <View style={styles.iosGridItem}>
               <View style={styles.iosCircleBtn}>
-                <Text style={styles.iosGridIconText}>📹</Text>
+                <CallIcon name="ic_video" size={28} tintColor="#8E8E93" />
               </View>
-              <Text style={styles.iosGridLabel}>FaceTime</Text>
+              <Text style={[styles.iosGridLabel, { color: '#8E8E93' }]}>FaceTime</Text>
             </View>
 
-            {/* Tiếp tục / Nghe tiếp (Discreet Continue Button) */}
+            {/* 6. Danh bạ (also allows discreet dialogue continue) */}
             <View style={styles.iosGridItem}>
               <TouchableOpacity
                 style={styles.iosCircleBtn}
                 onPress={handleNextDialogue}
                 activeOpacity={0.7}
                 testID="continue-dialogue-btn"
-                accessibilityLabel="tiếp tục"
+                accessibilityLabel="danh bạ"
               >
-                <Text style={styles.iosGridIconText}>▶</Text>
+                <CallIcon name="ic_contacts" size={28} />
               </TouchableOpacity>
-              <Text style={styles.iosGridLabel}>tiếp tục</Text>
+              <Text style={styles.iosGridLabel}>danh bạ</Text>
             </View>
           </View>
         </View>
 
-        {/* Bottom Red End Call Button (Icon only) */}
+        {/* Bottom Red End Call Button (Target Image 4: Icon only, NO text label) */}
         <View style={styles.iosBottom}>
           <TouchableOpacity
             style={styles.iosEndBtn}
@@ -628,8 +631,13 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
             testID="end-call-btn"
             accessibilityLabel="KẾT THÚC CUỘC GỌI"
           >
-            <CallIcon name="phone_hangup" size={32} />
+            <CallIcon name="phone_hangup" size={34} />
           </TouchableOpacity>
+        </View>
+
+        {/* White iOS Home Indicator Bar */}
+        <View style={styles.iosHomeIndicatorWrap}>
+          <View style={styles.iosHomeIndicator} />
         </View>
       </View>
     );
@@ -642,7 +650,7 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
     <View style={[styles.container, styles.androidContainer]}>
       <StatusBar barStyle="light-content" backgroundColor="#1A2228" />
 
-      {/* Top Center: Circular Avatar & Identity (Tap to discreetly continue dialogue) */}
+      {/* Top Center: Circular Avatar & Identity */}
       <TouchableOpacity
         style={styles.androidTop}
         activeOpacity={0.9}
@@ -665,13 +673,13 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
         <Text style={styles.androidTimer}>{formatTime(seconds)}</Text>
       </TouchableOpacity>
 
-      {/* 6-Grid Icon Pad */}
+      {/* 6-Grid Icon Pad (Clean CallIcon without emoji characters) */}
       <View style={styles.androidGrid}>
         <View style={styles.androidGridRow}>
           {/* Ghi âm */}
           <View style={styles.androidGridItem}>
             <View style={styles.androidIconBtn}>
-              <Text style={styles.androidIconText}>⏺️</Text>
+              <CallIcon name="ic_record" size={22} />
             </View>
             <Text style={styles.androidIconLabel}>Ghi âm</Text>
           </View>
@@ -679,7 +687,7 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
           {/* Giữ máy */}
           <View style={styles.androidGridItem}>
             <View style={styles.androidIconBtn}>
-              <Text style={styles.androidIconText}>⏸️</Text>
+              <CallIcon name="ic_hold" size={22} />
             </View>
             <Text style={styles.androidIconLabel}>Giữ máy</Text>
           </View>
@@ -687,7 +695,7 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
           {/* Thêm cuộc gọi */}
           <View style={styles.androidGridItem}>
             <View style={styles.androidIconBtn}>
-              <Text style={styles.androidIconText}>➕</Text>
+              <CallIcon name="ic_add" size={22} />
             </View>
             <Text style={styles.androidIconLabel}>Thêm cuộc gọi</Text>
           </View>
@@ -713,7 +721,7 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
           {/* Video */}
           <View style={styles.androidGridItem}>
             <View style={styles.androidIconBtn}>
-              <Text style={styles.androidIconText}>📹</Text>
+              <CallIcon name="ic_video" size={22} />
             </View>
             <Text style={styles.androidIconLabel}>Video</Text>
           </View>
@@ -727,7 +735,7 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
               testID="continue-dialogue-btn"
               accessibilityLabel="Tiếp tục lời thoại"
             >
-              <Text style={styles.androidIconText}>▶️</Text>
+              <CallIcon name="ic_contacts" size={22} />
             </TouchableOpacity>
             <Text style={styles.androidIconLabel}>Tiếp tục</Text>
           </View>
@@ -752,7 +760,7 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
           <CallIcon name="ic_speaker" size={22} />
         </TouchableOpacity>
 
-        {/* Center End Call Button (Big round red button with white curved handset) */}
+        {/* Center End Call Button */}
         <View style={styles.androidEndCallWrap}>
           <TouchableOpacity
             style={styles.androidEndCallBtn}
@@ -895,200 +903,182 @@ const styles = StyleSheet.create({
   },
 
   // ----------------------------------------------------
-  // MESSENGER ACTIVE STYLES
+  // MESSENGER ACTIVE STYLES (Target Image 2)
   // ----------------------------------------------------
   messengerContainer: {
-    backgroundColor: '#2C2D32',
+    backgroundColor: '#DAD8C3',
   },
-  messengerTopHeader: {
+  messengerTopBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.sm,
-    paddingTop: spacing.xs,
+    paddingTop: Platform.OS === 'ios' ? 8 : spacing.xs,
   },
-  messengerBackBtn: {
-    padding: spacing.xs,
-  },
-  messengerBackArrow: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  messengerCameraTogglePill: {
-    width: 44,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#3E4047',
+  messengerTopLeft: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  messengerCameraToggleIcon: {
-    fontSize: 14,
+  messengerTopRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   messengerCenter: {
     alignItems: 'center',
-    marginVertical: spacing.lg,
+    marginTop: spacing.xxl,
   },
   messengerAvatarCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    backgroundColor: '#C5C3AF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
     overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#E8E6D6',
   },
   messengerAvatarInitials: {
-    color: '#FFFFFF',
-    fontSize: 36,
+    color: '#3A3B35',
+    fontSize: 38,
     fontWeight: typography.fontWeights.bold,
   },
   messengerCallerName: {
-    color: '#FFFFFF',
-    fontSize: typography.fontSizes.xxl,
+    color: '#262722',
+    fontSize: typography.fontSizes.xxl + 2,
     fontWeight: typography.fontWeights.bold,
     marginBottom: 4,
   },
-  messengerTimer: {
-    color: 'rgba(255, 255, 255, 0.75)',
+  messengerCallingStatus: {
+    color: '#55564E',
     fontSize: 15,
     fontWeight: typography.fontWeights.medium,
   },
   messengerBottomDock: {
-    backgroundColor: '#18191E',
-    borderRadius: 28,
-    paddingTop: 10,
-    paddingBottom: Platform.OS === 'ios' ? 28 : spacing.lg,
-    paddingHorizontal: spacing.md,
-    marginHorizontal: spacing.xs,
-  },
-  messengerDockHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    alignSelf: 'center',
-    marginBottom: spacing.md,
-  },
-  messengerDockButtonsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingBottom: Platform.OS === 'ios' ? 24 : spacing.xl,
   },
   messengerDockBtnDark: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#3A3B42',
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: 'rgba(74, 75, 70, 0.88)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  messengerDockIconLight: {
-    color: '#FFFFFF',
-    fontSize: 18,
-  },
-  messengerDockBtnWhite: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  messengerDockBtnWhiteActive: {
-    backgroundColor: '#CBD5E1',
+  messengerDockBtnDarkActive: {
+    backgroundColor: 'rgba(74, 75, 70, 0.55)',
   },
   messengerDockBtnRed: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#EF4444',
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#FA3E3E',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#EF4444',
+    shadowColor: '#FA3E3E',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.35,
     shadowRadius: 6,
     elevation: 4,
   },
 
   // ----------------------------------------------------
-  // IOS ACTIVE STYLES
+  // IOS ACTIVE STYLES (Target Image 4)
   // ----------------------------------------------------
   iosContainer: {
-    backgroundColor: '#000000',
+    backgroundColor: '#141414',
+  },
+  iosTopStatus: {
+    alignItems: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingTop: Platform.OS === 'ios' ? 0 : spacing.xs,
+  },
+  iosTimeText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: typography.fontWeights.semiBold,
   },
   iosTop: {
     alignItems: 'center',
-    paddingTop: spacing.lg,
+    marginTop: spacing.xl,
+    marginBottom: spacing.xl,
   },
   iosCallerName: {
     color: '#FFFFFF',
-    fontSize: typography.fontSizes.xxl + 2,
-    fontWeight: typography.fontWeights.semiBold,
+    fontSize: 32,
+    fontWeight: '700',
     letterSpacing: 0.3,
+    marginBottom: 4,
   },
   iosTimer: {
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: typography.fontSizes.sm,
-    marginTop: 2,
+    color: '#8E8E93',
+    fontSize: 18,
+    fontWeight: '400',
   },
   iosGridSection: {
     marginVertical: spacing.md,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 24,
   },
   iosGridRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
   },
   iosGridItem: {
     alignItems: 'center',
-    width: 76,
+    width: 82,
   },
   iosCircleBtn: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    backgroundColor: '#262628',
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   iosCircleBtnActive: {
     backgroundColor: '#FFFFFF',
   },
-  iosGridIconText: {
-    color: '#FFFFFF',
-    fontSize: 20,
-  },
   iosGridLabel: {
     color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: typography.fontWeights.medium,
+    fontSize: 13,
+    fontWeight: '400',
     textAlign: 'center',
   },
   iosBottom: {
     alignItems: 'center',
-    paddingBottom: spacing.xxl,
+    marginBottom: spacing.xl,
   },
   iosEndBtn: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: '#EF4444',
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#EB5545',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
+  },
+  iosHomeIndicatorWrap: {
+    alignItems: 'center',
+    paddingBottom: 8,
+  },
+  iosHomeIndicator: {
+    width: 134,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#FFFFFF',
   },
 
   // ----------------------------------------------------
   // ANDROID ACTIVE STYLES
   // ----------------------------------------------------
   androidContainer: {
-    backgroundColor: '#192229',
+    backgroundColor: '#1A2228',
   },
   androidTop: {
     alignItems: 'center',
@@ -1149,10 +1139,6 @@ const styles = StyleSheet.create({
   },
   androidIconBtnActive: {
     backgroundColor: 'rgba(34, 197, 94, 0.3)',
-  },
-  androidIconText: {
-    fontSize: 20,
-    color: '#FFFFFF',
   },
   androidIconLabel: {
     color: 'rgba(255, 255, 255, 0.7)',
