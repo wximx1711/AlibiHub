@@ -446,19 +446,22 @@ function resolveVoiceName(voiceName, callerRole = '', callerName = '') {
     return voiceName;
   }
 
+  const roleKey = (callerRole || '').toLowerCase().trim();
+  if (GEMINI_VOICES[roleKey]) return GEMINI_VOICES[roleKey];
+
   const textToScan = ` ${callerRole} ${callerName} `.toLowerCase();
-  if (/(^|[\s,._-])(mẹ|má|u|bà|chị|dì|cô|bác gái|nữ)([\s,._-]|$)/i.test(textToScan)) return 'Kore';
-  if (/(^|[\s,._-])(bố|ba|cha|chú|bác trai|ông)([\s,._-]|$)/i.test(textToScan)) return 'Charon';
-  if (/(sếp|giám đốc|trưởng phòng|quản lý|đối tác|công ty|văn phòng)/i.test(textToScan)) return 'Fenrir';
-  if (/(shipper|giao hàng|tài xế|bưu tá|xe ôm)/i.test(textToScan)) return 'Aoede';
-  if (/(bạn|bồ|người yêu|đồng nghiệp|em)/i.test(textToScan)) return 'Puck';
+  if (/(^|[\s,._-])(mẹ|má|u|bà|chị|dì|cô|bác gái|nữ|mother|mom)([\s,._-]|$)/i.test(textToScan)) return 'Kore';
+  if (/(^|[\s,._-])(bố|ba|cha|chú|bác trai|ông|father|dad)([\s,._-]|$)/i.test(textToScan)) return 'Charon';
+  if (/(sếp|giám đốc|trưởng phòng|quản lý|đối tác|công ty|văn phòng|boss|manager)/i.test(textToScan)) return 'Fenrir';
+  if (/(shipper|giao hàng|tài xế|bưu tá|xe ôm|delivery)/i.test(textToScan)) return 'Aoede';
+  if (/(bạn|bồ|người yêu|đồng nghiệp|em|friend|crush)/i.test(textToScan)) return 'Puck';
 
   return 'Kore';
 }
 
 async function generateGeminiTts(apiKey, {
   text: rawText,
-  voiceName = 'Kore',
+  voiceName = 'auto',
   callerRole = '',
   callerName = '',
   isPreview = false,
