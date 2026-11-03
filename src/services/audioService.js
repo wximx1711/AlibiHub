@@ -3,6 +3,11 @@ import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import { Asset } from 'expo-asset';
 
+let FileSystem = null;
+try {
+  FileSystem = require('expo-file-system');
+} catch (_) {}
+
 function player(source) {
   if (Platform.OS !== 'web') return createAudioPlayer(source);
   const media = new Audio(Asset.fromModule(source).uri);
@@ -139,13 +144,112 @@ class AudioSimulationService {
     await setAudioModeAsync({ shouldRouteThroughEarpiece: !value });
   }
 
-  speakDialogueLine(text, onEnd, voiceProfile = null) {
-    this.currentUtteranceId++;
-    const thisUtteranceId = this.currentUtteranceId;
+  currentTtsPlayer = null;
+  ttsSafetyTimer = null;
 
+  stopCurrentTts() {
+    clearTimeout(this.ttsSafetyTimer);
+    if (this.currentTtsPlayer) {
+      try {
+        if (Platform.OS === 'web') {
+          this.currentTtsPlayer.pause();
+          this.currentTtsPlayer.currentTime = 0;
+        } else {
+          this.currentTtsPlayer.pause?.();
+          this.currentTtsPlayer.remove?.();
+        }
+      } catch (_) {}
+      this.currentTtsPlayer = null;
+    }
     try {
       Speech.stop();
     } catch (_) {}
+  }
+
+  async playBase64Audio(base64Wav, onEnd) {
+    this.stopCurrentTts();
+    const utteranceId = ++this.currentUtteranceId;
+
+    const finish = () => {
+      clearTimeout(this.ttsSafetyTimer);
+      if (this.currentUtteranceId !== utteranceId) return;
+      this.speaking = false;
+      this.currentTtsPlayer = null;
+      this.setAmbientVolume(this.ambientVolume);
+      onEnd?.();
+    };
+
+    if (!base64Wav || this.isMuted || this.voiceVolume === 0) {
+      this.speaking = false;
+      onEnd?.();
+      return;
+    }
+
+    this.speaking = true;
+    this.setAmbientVolume(this.ambientVolume);
+
+    if (Platform.OS === 'web') {
+      try {
+        const audio = new Audio('data:audio/wav;base64,' + base64Wav);
+        audio.volume = this.voiceVolume;
+        this.currentTtsPlayer = audio;
+        audio.onended = finish;
+        audio.onerror = finish;
+        audio.play().catch(finish);
+      } catch (_) {
+        finish();
+      }
+      return;
+    }
+
+    // Native Android / iOS
+    try {
+      let fileUri = null;
+      if (FileSystem && FileSystem.cacheDirectory) {
+        fileUri = `${FileSystem.cacheDirectory}alibi_gemini_${Date.now()}.wav`;
+        await FileSystem.writeAsStringAsync(fileUri, base64Wav, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      }
+
+      if (fileUri) {
+        const player = createAudioPlayer({ uri: fileUri });
+        this.currentTtsPlayer = player;
+        if (typeof player.volume === 'number') {
+          player.volume = this.voiceVolume;
+        }
+
+        // Calculate approximate duration based on WAV length (~48KB per second at 24kHz 16-bit mono)
+        const approxDurationMs = Math.max(1200, Math.round(((base64Wav.length * 0.75) / 48000) * 1000) + 400);
+
+        if (typeof player.addListener === 'function') {
+          player.addListener('playbackStatusUpdate', (status) => {
+            if (status?.didJustFinish) {
+              finish();
+            }
+          });
+        }
+
+        this.ttsSafetyTimer = setTimeout(finish, approxDurationMs);
+        player.play();
+        return;
+      }
+    } catch (_) {
+      finish();
+    }
+  }
+
+  speakDialogueLine(text, onEnd, voiceProfile = null, audioBase64 = null) {
+    this.stopCurrentTts();
+
+    // 1. If backend Gemini TTS audio is provided, play high-naturalness voice directly!
+    if (audioBase64) {
+      this.playBase64Audio(audioBase64, onEnd);
+      return;
+    }
+
+    // 2. Otherwise fall back cleanly to device-level Vietnamese expo-speech
+    const thisUtteranceId = ++this.currentUtteranceId;
 
     if (!text || this.isMuted || this.voiceVolume === 0) {
       this.speaking = false;
@@ -157,7 +261,6 @@ class AudioSimulationService {
     this.setAmbientVolume(this.ambientVolume);
 
     const finish = () => {
-      // Ignore if superseded by another speech request or stopAll()
       if (this.currentUtteranceId !== thisUtteranceId) return;
       this.speaking = false;
       this.setAmbientVolume(this.ambientVolume);
@@ -181,12 +284,6 @@ class AudioSimulationService {
       onError: () => {
         if (this.currentUtteranceId === thisUtteranceId) {
           finish();
-          if (Platform.OS !== 'web') {
-            Alert.alert(
-              'Giọng đọc',
-              'Không thể phát lời thoại. Hãy kiểm tra cài đặt Text-to-Speech tiếng Việt của máy.'
-            );
-          }
         }
       },
     };
@@ -206,9 +303,7 @@ class AudioSimulationService {
     this.currentUtteranceId++;
     this.stopIncomingCallAlert();
     this.stopAmbientSound();
-    try {
-      Speech.stop();
-    } catch (_) {}
+    this.stopCurrentTts();
     this.isMuted = false;
     this.speaking = false;
   }

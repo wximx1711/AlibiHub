@@ -12,8 +12,13 @@ import {
 import { colors, typography, spacing, borderRadius } from '../theme/colors';
 import Header from '../components/Header';
 import AudioPlayerControl from '../components/AudioPlayerControl';
-import { AMBIENT_PRESETS } from '../services/audioService';
-import { getDynamicRoleDialogue } from '../services/dialogueService';
+import { AMBIENT_PRESETS, audioService } from '../services/audioService';
+import {
+  getDynamicRoleDialogue,
+  GEMINI_VOICE_PROFILES,
+  getGeminiVoiceForCaller,
+} from '../services/dialogueService';
+import { generateTtsAudio } from '../services/aiService';
 
 export default function SmartCallSetupScreen({
   callers = [],
@@ -44,6 +49,8 @@ export default function SmartCallSetupScreen({
   const [isCustomDelay, setIsCustomDelay] = useState(false);
 
   const [ambientSound, setAmbientSound] = useState(initialConfig?.ambientSound || 'office');
+  const [selectedVoiceId, setSelectedVoiceId] = useState(initialConfig?.voiceId || 'auto');
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [voiceVolume, setVoiceVolume] = useState(initialConfig?.voiceVolume ?? 1.0);
   const [ambientVolume, setAmbientVolume] = useState(initialConfig?.ambientVolume ?? 0.25);
   const [callAppearance, setCallAppearance] = useState(
@@ -138,8 +145,44 @@ export default function SmartCallSetupScreen({
       title: title.trim(),
       suggestedMessage: message.trim(),
       callAppearance,
+      voiceId: selectedVoiceId,
       id: initialConfig?.isCustom ? initialConfig.id : undefined,
     };
+  };
+
+  const handlePreviewVoice = async () => {
+    if (previewLoading) return;
+    setPreviewLoading(true);
+
+    try {
+      const voiceProfile = getGeminiVoiceForCaller(
+        { name: callerName, role: callerRole },
+        title,
+        callerRole,
+        selectedVoiceId
+      );
+      const targetVoice = voiceProfile?.geminiVoice || 'Kore';
+      const sampleText = voiceProfile?.previewText || 'Alo, tôi đang gọi cho bạn đây!';
+
+      const res = await generateTtsAudio({
+        text: sampleText,
+        voiceName: targetVoice,
+        callerRole: callerRole || 'Người quen',
+        callerName: callerName || 'Người gọi',
+        isPreview: true,
+      });
+
+      if (res?.audioBase64) {
+        audioService.speakDialogueLine(sampleText, () => setPreviewLoading(false), null, res.audioBase64);
+      } else {
+        audioService.speakDialogueLine(sampleText, () => setPreviewLoading(false), voiceProfile);
+      }
+    } catch (_) {
+      // Graceful fallback to device speech
+      audioService.speakDialogueLine('Alo, tôi đang gọi cho bạn đây!', () => setPreviewLoading(false));
+    } finally {
+      setTimeout(() => setPreviewLoading(false), 2500);
+    }
   };
 
   const handleLaunch = () => {
@@ -395,9 +438,51 @@ export default function SmartCallSetupScreen({
           onAmbientVolumeChange={setAmbientVolume}
         />
 
-        {/* 5. Multi-step Voice Dialogue */}
+        {/* 5. Natural Gemini Voice Profiles */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>5. ĐOẠN THOẠI KỊCH BẢN (MULTI-STEP DIALOGUE)</Text>
+          <Text style={styles.sectionTitle}>5. GIỌNG NÓI AI GEMINI (GEMINI AI VOICES)</Text>
+          <Text style={styles.sectionSubtitle}>
+            Chọn giọng đọc tiếng Việt tự nhiên phát trực tiếp từ máy chủ Gemini:
+          </Text>
+
+          <View style={styles.voiceList}>
+            {GEMINI_VOICE_PROFILES.map((vp) => {
+              const isSelected = selectedVoiceId === vp.id;
+              return (
+                <TouchableOpacity
+                  key={vp.id}
+                  style={[styles.voiceItem, isSelected && styles.voiceItemSelected]}
+                  onPress={() => setSelectedVoiceId(vp.id)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.voiceInfo}>
+                    <Text style={[styles.voiceLabel, isSelected && styles.voiceLabelSelected]}>
+                      {vp.label}
+                    </Text>
+                    <Text style={styles.voiceDesc}>{vp.description}</Text>
+                  </View>
+                  <Text style={styles.checkIcon}>{isSelected ? '✓' : '○'}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Voice Preview Button */}
+          <TouchableOpacity
+            style={styles.voicePreviewBtn}
+            onPress={handlePreviewVoice}
+            disabled={previewLoading}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.voicePreviewBtnText}>
+              {previewLoading ? '⏳ Đang phát giọng mẫu...' : '🔊 Nghe thử giọng nói AI'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 6. Multi-step Voice Dialogue */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>6. ĐOẠN THOẠI KỊCH BẢN (MULTI-STEP DIALOGUE)</Text>
           <Text style={styles.sectionSubtitle}>
             Lời thoại sẽ phát theo từng câu khi bạn nhận cuộc gọi mô phỏng:
           </Text>
@@ -694,6 +779,56 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginLeft: spacing.sm,
+  },
+  voiceList: {
+    backgroundColor: colors.bgCard,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.bgCardBorder,
+    overflow: 'hidden',
+  },
+  voiceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.bgCardBorder,
+  },
+  voiceItemSelected: {
+    backgroundColor: colors.primary + '15',
+  },
+  voiceInfo: {
+    flex: 1,
+  },
+  voiceLabel: {
+    color: colors.textPrimary,
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.semiBold,
+  },
+  voiceLabelSelected: {
+    color: colors.primary,
+  },
+  voiceDesc: {
+    color: colors.textSecondary,
+    fontSize: typography.fontSizes.xs - 1,
+    marginTop: 2,
+  },
+  voicePreviewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgCard,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm + 4,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    marginTop: spacing.sm,
+  },
+  voicePreviewBtnText: {
+    color: colors.primary,
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.bold,
   },
   dialogueRow: {
     flexDirection: 'row',

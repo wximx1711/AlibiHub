@@ -365,10 +365,225 @@ Người nghe vừa nói vào micro: "${userUtterance.trim()}"
     .replace(/^[^:]*:\s*/, '')
     .trim();
 
+  // Attempt to generate spoken audio concurrently or gracefully fallback
+  let ttsResult = null;
+  try {
+    ttsResult = await generateGeminiTts(apiKey, {
+      text: cleanText,
+      voiceName,
+      callerRole,
+      callerName,
+    });
+  } catch (_) {}
+
   return {
     success: true,
     reply: cleanText,
+    audioBase64: ttsResult?.success ? ttsResult.audioBase64 : null,
+    audioMimeType: ttsResult?.success ? ttsResult.audioMimeType : null,
+    voice: ttsResult?.voice || resolveVoiceName(voiceName, callerRole, callerName),
     model: result.model,
+    ttsModel: ttsResult?.model || null,
+  };
+}
+
+let preloadedCache = {};
+try {
+  preloadedCache = require('./preloadedVoiceCache');
+} catch (_) {}
+
+const ttsCache = new Map(Object.entries(preloadedCache));
+const MAX_TTS_CACHE = 150;
+
+function pcmToWav(pcmBuffer, sampleRate = 24000, numChannels = 1, bitsPerSample = 16) {
+  const byteRate = (sampleRate * numChannels * bitsPerSample) / 8;
+  const blockAlign = (numChannels * bitsPerSample) / 8;
+  const dataSize = pcmBuffer.length;
+  const header = Buffer.alloc(44);
+
+  header.write('RIFF', 0);
+  header.writeUInt32LE(36 + dataSize, 4);
+  header.write('WAVE', 8);
+  header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(numChannels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(bitsPerSample, 34);
+  header.write('data', 36);
+  header.writeUInt32LE(dataSize, 40);
+
+  return Buffer.concat([header, pcmBuffer]);
+}
+
+const TTS_PRIMARY_MODEL = 'gemini-3.8-flash-lite-tts';
+const TTS_FALLBACK_MODELS = [
+  'gemini-3.8-flash-tts',
+  'gemini-3.1-flash-tts-preview',
+];
+
+const GEMINI_VOICES = {
+  mother: 'Kore',
+  kore: 'Kore',
+  father: 'Charon',
+  charon: 'Charon',
+  boss: 'Fenrir',
+  fenrir: 'Fenrir',
+  friend: 'Puck',
+  puck: 'Puck',
+  shipper: 'Aoede',
+  aoede: 'Aoede',
+};
+
+function resolveVoiceName(voiceName, callerRole = '', callerName = '') {
+  if (voiceName && voiceName !== 'auto') {
+    const key = voiceName.toLowerCase();
+    if (GEMINI_VOICES[key]) return GEMINI_VOICES[key];
+    return voiceName;
+  }
+
+  const textToScan = ` ${callerRole} ${callerName} `.toLowerCase();
+  if (/(^|[\s,._-])(mẹ|má|u|bà|chị|dì|cô|bác gái|nữ)([\s,._-]|$)/i.test(textToScan)) return 'Kore';
+  if (/(^|[\s,._-])(bố|ba|cha|chú|bác trai|ông)([\s,._-]|$)/i.test(textToScan)) return 'Charon';
+  if (/(sếp|giám đốc|trưởng phòng|quản lý|đối tác|công ty|văn phòng)/i.test(textToScan)) return 'Fenrir';
+  if (/(shipper|giao hàng|tài xế|bưu tá|xe ôm)/i.test(textToScan)) return 'Aoede';
+  if (/(bạn|bồ|người yêu|đồng nghiệp|em)/i.test(textToScan)) return 'Puck';
+
+  return 'Kore';
+}
+
+async function generateGeminiTts(apiKey, {
+  text: rawText,
+  voiceName = 'Kore',
+  callerRole = '',
+  callerName = '',
+  isPreview = false,
+}) {
+  if (!rawText || !rawText.trim()) {
+    throw new Error('Văn bản cần đọc không được để trống.');
+  }
+
+  const cleanText = rawText.trim()
+    .replace(/^["']|["']$/g, '')
+    .replace(/^\([^)]*\)\s*/g, '')
+    .replace(/^\[[^\]]*\]\s*/g, '')
+    .trim();
+
+  const selectedVoice = resolveVoiceName(voiceName, callerRole, callerName);
+  const cacheKey = isPreview
+    ? `preview:${selectedVoice.toLowerCase()}`
+    : `${selectedVoice.toLowerCase()}:${cleanText.toLowerCase()}`;
+
+  if (ttsCache.has(cacheKey)) {
+    const cached = ttsCache.get(cacheKey);
+    return {
+      success: true,
+      audioBase64: cached.base64,
+      audioMimeType: cached.mimeType || 'audio/wav',
+      voice: selectedVoice,
+      cached: true,
+    };
+  }
+
+  if (!apiKey || !apiKey.trim()) {
+    const error = new Error('GEMINI_API_KEY chưa được cấu hình.');
+    error.code = 'MISSING_API_KEY';
+    throw error;
+  }
+
+  const modelsToTry = [TTS_PRIMARY_MODEL, ...TTS_FALLBACK_MODELS];
+  let lastError = null;
+
+  for (const model of modelsToTry) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey.trim(),
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: cleanText }] }],
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: {
+                  voiceName: selectedVoice,
+                },
+              },
+            },
+          },
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      const data = await response.json();
+
+      if (!response.ok) {
+        const errorStatus = response.status;
+        console.warn(`[Gemini TTS] Upstream HTTP ${errorStatus} on model ${model}`);
+        if (errorStatus === 429) {
+          lastError = new Error('Hạn ngạch Gemini TTS tạm thời hết lượt.');
+          lastError.code = 'RATE_LIMIT';
+          continue;
+        }
+        lastError = new Error(data?.error?.message || `Lỗi HTTP ${errorStatus}`);
+        continue;
+      }
+
+      const parts = data?.candidates?.[0]?.content?.parts || [];
+      const audioPart = parts.find((p) => p.inlineData && p.inlineData.data);
+      if (!audioPart) {
+        lastError = new Error(`Mô hình ${model} không trả về dữ liệu âm thanh.`);
+        continue;
+      }
+
+      let audioBase64 = audioPart.inlineData.data;
+      let mimeType = audioPart.inlineData.mimeType || 'audio/wav';
+
+      if (mimeType.includes('L16') || mimeType.includes('pcm')) {
+        const pcmBuf = Buffer.from(audioBase64, 'base64');
+        const wavBuf = pcmToWav(pcmBuf, 24000, 1, 16);
+        audioBase64 = wavBuf.toString('base64');
+        mimeType = 'audio/wav';
+      }
+
+      if (ttsCache.size >= MAX_TTS_CACHE) {
+        const firstKey = ttsCache.keys().next().value;
+        if (!firstKey.startsWith('preview:')) {
+          ttsCache.delete(firstKey);
+        }
+      }
+      ttsCache.set(cacheKey, { base64: audioBase64, mimeType, voice: selectedVoice });
+
+      return {
+        success: true,
+        audioBase64,
+        audioMimeType: 'audio/wav',
+        voice: selectedVoice,
+        model,
+        cached: false,
+      };
+    } catch (err) {
+      clearTimeout(timeoutId);
+      lastError = err;
+    }
+  }
+
+  return {
+    success: false,
+    fallback: true,
+    error: lastError?.message || 'Không thể tạo âm thanh Gemini TTS lúc này.',
+    code: lastError?.code || 'TTS_ERROR',
+    voice: selectedVoice,
   };
 }
 
@@ -378,6 +593,10 @@ module.exports = {
   generateScenario,
   generateDialogue,
   respondToUserCall,
+  generateGeminiTts,
+  resolveVoiceName,
   PRIMARY_MODEL,
+  TTS_PRIMARY_MODEL,
+  GEMINI_VOICES,
 };
 

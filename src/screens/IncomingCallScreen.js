@@ -12,6 +12,8 @@ import {
 import { colors, typography, spacing, borderRadius } from '../theme/colors';
 import { audioService } from '../services/audioService';
 import CallIcon from '../components/CallIcon';
+import { generateTtsAudio } from '../services/aiService';
+import { getGeminiVoiceForCaller, getCallerOpeningGreeting } from '../services/dialogueService';
 
 export default function IncomingCallScreen({
   callPayload,
@@ -22,6 +24,7 @@ export default function IncomingCallScreen({
   const appearance = callPayload?.callAppearance || 'android';
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const prefetchedAudioRef = useRef(null);
   const caller = callPayload?.caller || {
     name: callPayload?.callerName || 'Người gọi ẩn danh',
     phoneNumber: callPayload?.callerPhone || '0901 234 567',
@@ -29,6 +32,29 @@ export default function IncomingCallScreen({
   };
 
   useEffect(() => {
+    // Background pre-fetch opening greeting audio while ringing so call starts instantly
+    try {
+      const voiceProfile = getGeminiVoiceForCaller(caller, callPayload?.title, caller.role, callPayload?.voiceId);
+      const greeting = getCallerOpeningGreeting({
+        caller,
+        scenarioTitle: callPayload?.title,
+        category: caller.role,
+        dialogueList: callPayload?.dialogue,
+      });
+      generateTtsAudio({
+        text: greeting,
+        voiceName: voiceProfile?.geminiVoice || 'Kore',
+        callerRole: caller.role,
+        callerName: caller.name,
+      })
+        .then((res) => {
+          if (res?.audioBase64) {
+            prefetchedAudioRef.current = res.audioBase64;
+          }
+        })
+        .catch(() => {});
+    } catch (_) {}
+
     // Start ringtone and vibration
     audioService.startIncomingCallAlert(
       callPayload?.ringtoneType || 'classic',
@@ -59,7 +85,11 @@ export default function IncomingCallScreen({
 
   const handleAccept = () => {
     audioService.stopIncomingCallAlert();
-    if (onAccept) onAccept({ ...callPayload, callAppearance: appearance });
+    if (onAccept) onAccept({
+      ...callPayload,
+      callAppearance: appearance,
+      openingAudioBase64: prefetchedAudioRef.current,
+    });
   };
 
   const handleDecline = () => {

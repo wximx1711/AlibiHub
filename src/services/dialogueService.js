@@ -504,3 +504,94 @@ export function generateOfflineCallReply({
   return 'Có việc khẩn cấp cần giải quyết ngay bây giờ, bạn thu xếp rời khỏi đó rồi qua hỗ trợ liền nhé!';
 }
 
+// 5 Dedicated Gemini Voice Profiles for High-Naturalness Vietnamese Roleplay
+export const GEMINI_VOICE_PROFILES = [
+  {
+    id: 'auto',
+    name: 'auto',
+    geminiVoice: 'Kore',
+    label: 'Tự động (Theo vai trò)',
+    description: 'Tự động chọn giọng chuẩn nhất theo vai trò người gọi',
+    previewText: 'AlibiHub sẽ tự động chọn giọng nói chuẩn xác theo vai trò người gọi.',
+  },
+  {
+    id: 'kore',
+    name: 'Kore',
+    geminiVoice: 'Kore',
+    label: 'Mẹ (Kore - Nữ ấm áp)',
+    description: 'Giọng nữ ấm áp, tình cảm, quen thuộc',
+    role: 'mother',
+    gender: 'female',
+    previewText: 'Con à, mẹ đang đợi cơm con ở nhà này, về sớm đi nhé!',
+  },
+  {
+    id: 'charon',
+    name: 'Charon',
+    geminiVoice: 'Charon',
+    label: 'Bố (Charon - Nam trầm ấm)',
+    description: 'Giọng nam trưởng thành, điềm đạm, nghiêm nghị',
+    role: 'father',
+    gender: 'male',
+    previewText: 'Bố nghe đây con, có việc gì gấp không?',
+  },
+  {
+    id: 'fenrir',
+    name: 'Fenrir',
+    geminiVoice: 'Fenrir',
+    label: 'Sếp (Fenrir - Nam quyết đoán)',
+    description: 'Giọng nam công sở tự tin, dứt khoát',
+    role: 'boss',
+    gender: 'male',
+    previewText: 'Cậu quay lại văn phòng ngay để họp xử lý hợp đồng nhé.',
+  },
+  {
+    id: 'puck',
+    name: 'Puck',
+    geminiVoice: 'Puck',
+    label: 'Bạn bè (Puck - Trẻ trung)',
+    description: 'Giọng tự nhiên, thân mật, gần gũi',
+    role: 'friend',
+    gender: 'neutral',
+    previewText: 'Ê mày, đang ở đâu đấy, qua tao cà phê tí đi!',
+  },
+  {
+    id: 'aoede',
+    name: 'Aoede',
+    geminiVoice: 'Aoede',
+    label: 'Shipper (Aoede - Năng động)',
+    description: 'Giọng linh hoạt, nhanh nhẹn, tự nhiên',
+    role: 'shipper',
+    gender: 'female',
+    previewText: 'Alo anh ơi, em giao hàng tới chân chung cư rồi, anh xuống lấy giúp em nhé.',
+  },
+];
+
+export function getGeminiVoiceForCaller(caller, scenarioTitle = '', category = '', manualVoiceId = 'auto') {
+  if (manualVoiceId && manualVoiceId !== 'auto') {
+    const found = GEMINI_VOICE_PROFILES.find((p) => p.id === manualVoiceId.toLowerCase() || p.name.toLowerCase() === manualVoiceId.toLowerCase());
+    if (found && found.id !== 'auto') return found;
+  }
+
+  const personaKey = detectCallerPersona(caller, scenarioTitle, category);
+  switch (personaKey) {
+    case 'FAMILY_MOM':
+      return GEMINI_VOICE_PROFILES.find((p) => p.id === 'kore');
+    case 'FAMILY_DAD':
+      return GEMINI_VOICE_PROFILES.find((p) => p.id === 'charon');
+    case 'BOSS':
+      return GEMINI_VOICE_PROFILES.find((p) => p.id === 'fenrir');
+    case 'FRIEND':
+      return GEMINI_VOICE_PROFILES.find((p) => p.id === 'puck');
+    case 'SHIPPER':
+      return GEMINI_VOICE_PROFILES.find((p) => p.id === 'aoede');
+    default: {
+      const textToScan = `${caller?.role || ''} ${caller?.name || ''}`.toLowerCase();
+      if (/(bố|ba|cha|chú|bác trai|ông|nam)/i.test(textToScan)) {
+        return GEMINI_VOICE_PROFILES.find((p) => p.id === 'charon');
+      }
+      return GEMINI_VOICE_PROFILES.find((p) => p.id === 'kore');
+    }
+  }
+}
+
+

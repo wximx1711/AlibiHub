@@ -36,7 +36,7 @@ function loadEnv() {
 
 if (process.env.NODE_ENV !== 'test') loadEnv();
 
-const { generateMessage, generateScenario, generateDialogue, respondToUserCall, PRIMARY_MODEL } = require('./geminiProxy');
+const { generateMessage, generateScenario, generateDialogue, respondToUserCall, generateGeminiTts, PRIMARY_MODEL, TTS_PRIMARY_MODEL } = require('./geminiProxy');
 
 const PORT = process.env.PORT || 3001;
 const activeApiKey = process.env.GEMINI_API_KEY || '';
@@ -232,7 +232,7 @@ const server = http.createServer((req, res) => {
               error: 'Chưa cấu hình GEMINI_API_KEY trên máy chủ proxy. Vui lòng thiết lập biến môi trường GEMINI_API_KEY.',
             });
           }
-          const { callerName, callerRole, scenarioTitle, category, userUtterance, conversationHistory } = body;
+          const { callerName, callerRole, scenarioTitle, category, userUtterance, conversationHistory, voiceName } = body;
           const result = await respondToUserCall(activeApiKey, {
             callerName,
             callerRole,
@@ -240,6 +240,7 @@ const server = http.createServer((req, res) => {
             category,
             userUtterance,
             conversationHistory,
+            voiceName,
           });
           return sendJson(res, 200, result);
         } catch (error) {
@@ -249,6 +250,40 @@ const server = http.createServer((req, res) => {
             success: false,
             error: error.message,
             code: error.code || 'GENERATION_ERROR',
+          });
+        }
+      }
+
+      // 7. POST /api/ai/tts (Gemini Backend Natural TTS Engine)
+      if (pathname === '/api/ai/tts') {
+        try {
+          if (!activeApiKey) {
+            return sendJson(res, 401, {
+              success: false,
+              code: 'MISSING_API_KEY',
+              error: 'Chưa cấu hình GEMINI_API_KEY trên máy chủ proxy. Vui lòng thiết lập biến môi trường GEMINI_API_KEY.',
+            });
+          }
+          const { text, voiceName, callerRole, callerName, isPreview } = body;
+          const result = await generateGeminiTts(activeApiKey, {
+            text,
+            voiceName,
+            callerRole,
+            callerName,
+            isPreview,
+          });
+          if (!result.success) {
+            const status = result.code === 'MISSING_API_KEY' ? 401 : result.code === 'RATE_LIMIT' ? 429 : 502;
+            return sendJson(res, status, result);
+          }
+          return sendJson(res, 200, result);
+        } catch (error) {
+          console.error('[Gemini TTS Route Error]:', error.message);
+          const status = error.code === 'RATE_LIMIT' ? 429 : error.code === 'INVALID_API_KEY' ? 502 : 400;
+          return sendJson(res, status, {
+            success: false,
+            error: error.message,
+            code: error.code || 'TTS_ERROR',
           });
         }
       }

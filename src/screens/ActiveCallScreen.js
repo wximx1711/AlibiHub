@@ -18,8 +18,9 @@ import {
   getCallerOpeningGreeting,
   selectVietnameseVoice,
   generateOfflineCallReply,
+  getGeminiVoiceForCaller,
 } from '../services/dialogueService';
-import { generateCallReply } from '../services/aiService';
+import { generateCallReply, generateTtsAudio } from '../services/aiService';
 import CallIcon from '../components/CallIcon';
 
 let SpeechRecognizer = null;
@@ -61,6 +62,8 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
     ...baseProfile,
     voiceIdentifier: selectVietnameseVoice(audioService.availableVoices, personaKey),
   };
+  const geminiVoice = getGeminiVoiceForCaller(caller, scenarioTitle, category, callPayload?.voiceId);
+  const voiceName = geminiVoice?.geminiVoice || 'Kore';
   const dialogueList = getDynamicRoleDialogue(caller, scenarioTitle, category, callPayload?.dialogue);
 
   const ambientSound = callPayload?.ambientSound || 'none';
@@ -127,6 +130,7 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
     abortControllerRef.current = new AbortController();
 
     let reply = '';
+    let audioBase64 = null;
     try {
       const res = await generateCallReply({
         callerName: caller.name,
@@ -135,9 +139,11 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
         category,
         userUtterance: trimmedText,
         conversationHistory: conversationHistoryRef.current,
+        voiceName,
       });
       if (res?.reply) {
         reply = res.reply;
+        audioBase64 = res.audioBase64 || null;
       }
     } catch (_) {
       // Graceful offline fallback on timeout or network error
@@ -159,11 +165,12 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
 
     conversationHistoryRef.current.push({ role: 'caller', text: reply });
 
-    // Speak caller reply via Vietnamese TTS (User speech is strictly not spoken)
+    // Speak caller reply via high-naturalness Gemini TTS (fallback to device TTS if needed)
     audioService.speakDialogueLine(
       reply,
       onCallerFinishedSpeaking,
-      voiceProfile
+      voiceProfile,
+      audioBase64
     );
   };
 
@@ -224,11 +231,41 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
     });
     conversationHistoryRef.current = [{ role: 'caller', text: openingGreeting }];
 
-    audioService.speakDialogueLine(
-      openingGreeting,
-      onCallerFinishedSpeaking,
-      voiceProfile
-    );
+    // If opening audio was passed, play immediately; otherwise request Gemini TTS
+    if (callPayload?.openingAudioBase64) {
+      audioService.speakDialogueLine(
+        openingGreeting,
+        onCallerFinishedSpeaking,
+        voiceProfile,
+        callPayload.openingAudioBase64
+      );
+    } else {
+      generateTtsAudio({
+        text: openingGreeting,
+        voiceName,
+        callerRole: caller.role,
+        callerName: caller.name,
+      })
+        .then((res) => {
+          if (!callEndedRef.current) {
+            audioService.speakDialogueLine(
+              openingGreeting,
+              onCallerFinishedSpeaking,
+              voiceProfile,
+              res?.audioBase64 || null
+            );
+          }
+        })
+        .catch(() => {
+          if (!callEndedRef.current) {
+            audioService.speakDialogueLine(
+              openingGreeting,
+              onCallerFinishedSpeaking,
+              voiceProfile
+            );
+          }
+        });
+    }
 
     return () => {
       callEndedRef.current = true;
@@ -247,7 +284,7 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
   };
 
   // User-triggered continuation (Discreet tap on avatar/center or Continue button)
-  const handleNextDialogue = () => {
+  const handleNextDialogue = async () => {
     if (callEndedRef.current) return;
     stopListening();
     isAiSpeakingRef.current = true;
@@ -267,10 +304,25 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
 
     setCurrentDialogueIndex(currentStepRef.current);
     conversationHistoryRef.current.push({ role: 'caller', text: nextLine });
+
+    let ttsAudio = null;
+    try {
+      const res = await generateTtsAudio({
+        text: nextLine,
+        voiceName,
+        callerRole: caller.role,
+        callerName: caller.name,
+      });
+      if (res?.audioBase64) ttsAudio = res.audioBase64;
+    } catch (_) {}
+
+    if (callEndedRef.current) return;
+
     audioService.speakDialogueLine(
       nextLine,
       onCallerFinishedSpeaking,
-      voiceProfile
+      voiceProfile,
+      ttsAudio
     );
   };
 

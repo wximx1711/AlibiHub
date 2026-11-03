@@ -86,6 +86,7 @@ export async function generateCallReply({
   category,
   userUtterance,
   conversationHistory = [],
+  voiceName = 'auto',
 }) {
   const sanitizedUtterance = text(userUtterance || '', 'Lời thoại người dùng', 1, 300);
   const data = await request(
@@ -97,11 +98,50 @@ export async function generateCallReply({
       category: typeof category === 'string' ? category.slice(0, 50) : '',
       userUtterance: sanitizedUtterance,
       conversationHistory: Array.isArray(conversationHistory) ? conversationHistory.slice(-6) : [],
+      voiceName,
     },
-    12000
+    14000
   );
   if (data && data.reply) {
-    return { success: true, reply: data.reply, model: data.model };
+    return {
+      success: true,
+      reply: data.reply,
+      audioBase64: data.audioBase64 || null,
+      audioMimeType: data.audioMimeType || null,
+      voice: data.voice || voiceName,
+      model: data.model,
+    };
   }
   throw new Error('AI không trả về câu phản hồi hợp lệ.');
+}
+
+export async function generateTtsAudio({
+  text: ttsText,
+  voiceName = 'Kore',
+  callerRole = '',
+  callerName = '',
+  isPreview = false,
+}) {
+  const sanitizedText = text(ttsText || '', 'Văn bản đọc', 1, 500);
+  const data = await request(
+    '/api/ai/tts',
+    {
+      text: sanitizedText,
+      voiceName,
+      callerRole,
+      callerName,
+      isPreview,
+    },
+    15000
+  );
+  if (data && data.audioBase64) {
+    return {
+      success: true,
+      audioBase64: data.audioBase64,
+      audioMimeType: data.audioMimeType || 'audio/wav',
+      voice: data.voice || voiceName,
+      cached: !!data.cached,
+    };
+  }
+  throw new Error(data?.error || 'Không thể tạo âm thanh giọng nói.');
 }
