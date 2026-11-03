@@ -422,6 +422,7 @@ function pcmToWav(pcmBuffer, sampleRate = 24000, numChannels = 1, bitsPerSample 
 const TTS_PRIMARY_MODEL = 'gemini-3.8-flash-lite-tts';
 const TTS_FALLBACK_MODELS = [
   'gemini-3.8-flash-tts',
+  'gemini-2.5-flash-preview-tts',
   'gemini-3.1-flash-tts-preview',
 ];
 
@@ -548,11 +549,16 @@ async function generateGeminiTts(apiKey, {
       }
 
       let audioBase64 = audioPart.inlineData.data;
-      let mimeType = audioPart.inlineData.mimeType || 'audio/wav';
+      let mimeType = (audioPart.inlineData.mimeType || 'audio/wav').toLowerCase();
 
-      if (mimeType.includes('L16') || mimeType.includes('pcm')) {
-        const pcmBuf = Buffer.from(audioBase64, 'base64');
-        const wavBuf = pcmToWav(pcmBuf, 24000, 1, 16);
+      // Ensure raw PCM is always wrapped into standard RIFF WAVE
+      const initialBuf = Buffer.from(audioBase64, 'base64');
+      const isAlreadyWav = initialBuf.length >= 12 &&
+        initialBuf.subarray(0, 4).toString() === 'RIFF' &&
+        initialBuf.subarray(8, 12).toString() === 'WAVE';
+
+      if (!isAlreadyWav || mimeType.includes('l16') || mimeType.includes('pcm') || mimeType.includes('raw')) {
+        const wavBuf = pcmToWav(initialBuf, 24000, 1, 16);
         audioBase64 = wavBuf.toString('base64');
         mimeType = 'audio/wav';
       }

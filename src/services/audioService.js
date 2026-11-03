@@ -166,6 +166,46 @@ class AudioSimulationService {
     } catch (_) {}
   }
 
+  async playAudioSource(source, onEnd) {
+    this.stopCurrentTts();
+    const utteranceId = ++this.currentUtteranceId;
+
+    const finish = () => {
+      clearTimeout(this.ttsSafetyTimer);
+      if (this.currentUtteranceId !== utteranceId) return;
+      this.speaking = false;
+      this.currentTtsPlayer = null;
+      this.setAmbientVolume(this.ambientVolume);
+      onEnd?.();
+    };
+
+    if (!source || this.isMuted || this.voiceVolume === 0) {
+      this.speaking = false;
+      onEnd?.();
+      return;
+    }
+
+    this.speaking = true;
+    this.setAmbientVolume(this.ambientVolume);
+
+    try {
+      const p = player(source);
+      this.currentTtsPlayer = p;
+      if (typeof p.volume === 'number') {
+        p.volume = this.voiceVolume;
+      }
+      if (typeof p.addListener === 'function') {
+        p.addListener('playbackStatusUpdate', (status) => {
+          if (status?.didJustFinish) finish();
+        });
+      }
+      this.ttsSafetyTimer = setTimeout(finish, 8500);
+      p.play();
+    } catch (_) {
+      finish();
+    }
+  }
+
   async playBase64Audio(base64Wav, onEnd) {
     this.stopCurrentTts();
     const utteranceId = ++this.currentUtteranceId;
@@ -205,44 +245,55 @@ class AudioSimulationService {
     // Native Android / iOS
     try {
       let fileUri = null;
-      if (FileSystem && FileSystem.cacheDirectory) {
-        fileUri = `${FileSystem.cacheDirectory}alibi_gemini_${Date.now()}.wav`;
-        await FileSystem.writeAsStringAsync(fileUri, base64Wav, {
-          encoding: FileSystem.EncodingType.Base64,
+      let LegacyFS = null;
+      try {
+        LegacyFS = require('expo-file-system/legacy');
+      } catch (_) {
+        try { LegacyFS = require('expo-file-system'); } catch (_) {}
+      }
+
+      if (LegacyFS && LegacyFS.cacheDirectory && typeof LegacyFS.writeAsStringAsync === 'function') {
+        fileUri = `${LegacyFS.cacheDirectory}alibi_gemini_${Date.now()}.wav`;
+        await LegacyFS.writeAsStringAsync(fileUri, base64Wav, {
+          encoding: LegacyFS.EncodingType ? LegacyFS.EncodingType.Base64 : 'base64',
         });
       }
 
-      if (fileUri) {
-        const player = createAudioPlayer({ uri: fileUri });
-        this.currentTtsPlayer = player;
-        if (typeof player.volume === 'number') {
-          player.volume = this.voiceVolume;
-        }
-
-        // Calculate approximate duration based on WAV length (~48KB per second at 24kHz 16-bit mono)
-        const approxDurationMs = Math.max(1200, Math.round(((base64Wav.length * 0.75) / 48000) * 1000) + 400);
-
-        if (typeof player.addListener === 'function') {
-          player.addListener('playbackStatusUpdate', (status) => {
-            if (status?.didJustFinish) {
-              finish();
-            }
-          });
-        }
-
-        this.ttsSafetyTimer = setTimeout(finish, approxDurationMs);
-        player.play();
-        return;
+      const p = fileUri ? createAudioPlayer({ uri: fileUri }) : createAudioPlayer('data:audio/wav;base64,' + base64Wav);
+      this.currentTtsPlayer = p;
+      if (typeof p.volume === 'number') {
+        p.volume = this.voiceVolume;
       }
+
+      // Calculate approximate duration based on WAV length (~48KB per second at 24kHz 16-bit mono)
+      const approxDurationMs = Math.max(1200, Math.round(((base64Wav.length * 0.75) / 48000) * 1000) + 400);
+
+      if (typeof p.addListener === 'function') {
+        p.addListener('playbackStatusUpdate', (status) => {
+          if (status?.didJustFinish) {
+            finish();
+          }
+        });
+      }
+
+      this.ttsSafetyTimer = setTimeout(finish, approxDurationMs);
+      p.play();
+      return;
     } catch (_) {
       finish();
     }
   }
 
-  speakDialogueLine(text, onEnd, voiceProfile = null, audioBase64 = null) {
+  speakDialogueLine(text, onEnd, voiceProfile = null, audioBase64 = null, audioSource = null) {
     this.stopCurrentTts();
 
-    // 1. If backend Gemini TTS audio is provided, play high-naturalness voice directly!
+    // 1. If bundled pre-recorded audioSource is provided, play high-naturalness AI audio directly!
+    if (audioSource) {
+      this.playAudioSource(audioSource, onEnd);
+      return;
+    }
+
+    // 2. If backend Gemini TTS audio is provided, play high-naturalness voice directly!
     if (audioBase64) {
       this.playBase64Audio(audioBase64, onEnd);
       return;

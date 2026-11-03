@@ -21,6 +21,7 @@ import {
   getGeminiVoiceForCaller,
 } from '../services/dialogueService';
 import { generateCallReply, generateTtsAudio } from '../services/aiService';
+import { getPrerecordedClip } from '../services/prerecordedVoices';
 import CallIcon from '../components/CallIcon';
 
 let SpeechRecognizer = null;
@@ -149,28 +150,36 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
       // Graceful offline fallback on timeout or network error
     }
 
+    let audioSource = null;
     if (!reply && !callEndedRef.current) {
       currentStepRef.current += 1;
-      reply = generateOfflineCallReply({
-        caller,
-        scenarioTitle,
-        category,
-        userUtterance: trimmedText,
-        dialogueList,
-        stepIndex: currentStepRef.current,
-      });
+      const prerecorded = getPrerecordedClip(personaKey, caller, currentStepRef.current);
+      if (prerecorded?.source) {
+        reply = prerecorded.text;
+        audioSource = prerecorded.source;
+      } else {
+        reply = generateOfflineCallReply({
+          caller,
+          scenarioTitle,
+          category,
+          userUtterance: trimmedText,
+          dialogueList,
+          stepIndex: currentStepRef.current,
+        });
+      }
     }
 
     if (callEndedRef.current) return;
 
     conversationHistoryRef.current.push({ role: 'caller', text: reply });
 
-    // Speak caller reply via high-naturalness Gemini TTS (fallback to device TTS if needed)
+    // Speak caller reply via high-naturalness Gemini TTS or bundled AI audio clip
     audioService.speakDialogueLine(
       reply,
       onCallerFinishedSpeaking,
       voiceProfile,
-      audioBase64
+      audioBase64,
+      audioSource
     );
   };
 
@@ -240,6 +249,7 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
         callPayload.openingAudioBase64
       );
     } else {
+      const prerecorded = getPrerecordedClip(personaKey, caller, 0);
       generateTtsAudio({
         text: openingGreeting,
         voiceName,
@@ -248,21 +258,47 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
       })
         .then((res) => {
           if (!callEndedRef.current) {
-            audioService.speakDialogueLine(
-              openingGreeting,
-              onCallerFinishedSpeaking,
-              voiceProfile,
-              res?.audioBase64 || null
-            );
+            if (res?.audioBase64) {
+              audioService.speakDialogueLine(
+                openingGreeting,
+                onCallerFinishedSpeaking,
+                voiceProfile,
+                res.audioBase64
+              );
+            } else if (prerecorded?.source) {
+              audioService.speakDialogueLine(
+                prerecorded.text,
+                onCallerFinishedSpeaking,
+                voiceProfile,
+                null,
+                prerecorded.source
+              );
+            } else {
+              audioService.speakDialogueLine(
+                openingGreeting,
+                onCallerFinishedSpeaking,
+                voiceProfile
+              );
+            }
           }
         })
         .catch(() => {
           if (!callEndedRef.current) {
-            audioService.speakDialogueLine(
-              openingGreeting,
-              onCallerFinishedSpeaking,
-              voiceProfile
-            );
+            if (prerecorded?.source) {
+              audioService.speakDialogueLine(
+                prerecorded.text,
+                onCallerFinishedSpeaking,
+                voiceProfile,
+                null,
+                prerecorded.source
+              );
+            } else {
+              audioService.speakDialogueLine(
+                openingGreeting,
+                onCallerFinishedSpeaking,
+                voiceProfile
+              );
+            }
           }
         });
     }
@@ -318,12 +354,30 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
 
     if (callEndedRef.current) return;
 
-    audioService.speakDialogueLine(
-      nextLine,
-      onCallerFinishedSpeaking,
-      voiceProfile,
-      ttsAudio
-    );
+    const prerecorded = getPrerecordedClip(personaKey, caller, currentStepRef.current);
+
+    if (ttsAudio) {
+      audioService.speakDialogueLine(
+        nextLine,
+        onCallerFinishedSpeaking,
+        voiceProfile,
+        ttsAudio
+      );
+    } else if (prerecorded?.source) {
+      audioService.speakDialogueLine(
+        prerecorded.text,
+        onCallerFinishedSpeaking,
+        voiceProfile,
+        null,
+        prerecorded.source
+      );
+    } else {
+      audioService.speakDialogueLine(
+        nextLine,
+        onCallerFinishedSpeaking,
+        voiceProfile
+      );
+    }
   };
 
   // Unambiguous Mute: Stops STT recording and mutes audio

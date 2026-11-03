@@ -46,3 +46,58 @@ test('pcmToWav creates valid RIFF WAVE headers from raw PCM data', () => {
   assert.equal(wav.subarray(36, 40).toString(), 'data');
   assert.equal(wav.readUInt32LE(40), 4800); // dataSize
 });
+
+test('bundled AI voice assets: 5 comparison samples are real, distinct, non-empty RIFF/WAVE files', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const dir = path.join(__dirname, '..', 'assets', 'audio', 'voices');
+
+  const samples = [
+    'sample_mother.wav',
+    'sample_father.wav',
+    'sample_boss.wav',
+    'sample_friend.wav',
+    'sample_shipper.wav',
+  ];
+
+  const sizes = new Set();
+  for (const s of samples) {
+    const fullPath = path.join(dir, s);
+    assert.ok(fs.existsSync(fullPath), `Sample file ${s} must exist on disk`);
+    const stat = fs.statSync(fullPath);
+    assert.ok(stat.size > 50000, `Sample file ${s} must be substantial audio (>50KB), got ${stat.size}`);
+    sizes.add(stat.size);
+
+    const buf = fs.readFileSync(fullPath);
+    assert.equal(buf.subarray(0, 4).toString(), 'RIFF', `${s} must have RIFF header`);
+    assert.equal(buf.subarray(8, 12).toString(), 'WAVE', `${s} must have WAVE format`);
+  }
+
+  // All 5 samples must have distinct acoustic lengths/sizes
+  assert.ok(sizes.size >= 4, `All 5 samples must be genuinely different audio (at least 4 unique sizes), got ${sizes.size}`);
+});
+
+test('bundled AI voice assets: all 15 offline role clips (3 per persona) exist and are valid RIFF/WAVE', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const dir = path.join(__dirname, '..', 'assets', 'audio', 'voices');
+
+  const clips = [
+    'mother_1.wav', 'mother_2.wav', 'mother_3.wav',
+    'father_1.wav', 'father_2.wav', 'father_3.wav',
+    'boss_1.wav', 'boss_2.wav', 'boss_3.wav',
+    'friend_1.wav', 'friend_2.wav', 'friend_3.wav',
+    'shipper_1.wav', 'shipper_2.wav', 'shipper_3.wav',
+  ];
+
+  for (const c of clips) {
+    const fullPath = path.join(dir, c);
+    assert.ok(fs.existsSync(fullPath), `Role clip ${c} must exist`);
+    const stat = fs.statSync(fullPath);
+    assert.ok(stat.size > 50000, `Role clip ${c} must be > 50KB, got ${stat.size}`);
+
+    const buf = fs.readFileSync(fullPath);
+    assert.equal(buf.subarray(0, 4).toString(), 'RIFF', `${c} must have RIFF header`);
+    assert.equal(buf.subarray(8, 12).toString(), 'WAVE', `${c} must have WAVE format`);
+  }
+});

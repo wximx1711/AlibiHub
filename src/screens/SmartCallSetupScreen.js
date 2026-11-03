@@ -19,6 +19,7 @@ import {
   getGeminiVoiceForCaller,
 } from '../services/dialogueService';
 import { generateTtsAudio } from '../services/aiService';
+import { getPrerecordedSample } from '../services/prerecordedVoices';
 
 export default function SmartCallSetupScreen({
   callers = [],
@@ -163,25 +164,38 @@ export default function SmartCallSetupScreen({
       );
       const targetVoice = voiceProfile?.geminiVoice || 'Kore';
       const sampleText = voiceProfile?.previewText || 'Alo, tôi đang gọi cho bạn đây!';
+      const prerecorded = getPrerecordedSample(targetVoice);
 
-      const res = await generateTtsAudio({
-        text: sampleText,
-        voiceName: targetVoice,
-        callerRole: callerRole || 'Người quen',
-        callerName: callerName || 'Người gọi',
-        isPreview: true,
-      });
+      // 1. Try online Gemini TTS first
+      let ttsAudio = null;
+      try {
+        const res = await generateTtsAudio({
+          text: sampleText,
+          voiceName: targetVoice,
+          callerRole: callerRole || 'Người quen',
+          callerName: callerName || 'Người gọi',
+          isPreview: true,
+        });
+        if (res?.audioBase64) ttsAudio = res.audioBase64;
+      } catch (_) {}
 
-      if (res?.audioBase64) {
-        audioService.speakDialogueLine(sampleText, () => setPreviewLoading(false), null, res.audioBase64);
+      if (ttsAudio) {
+        audioService.speakDialogueLine(sampleText, () => setPreviewLoading(false), null, ttsAudio);
+      } else if (prerecorded?.source) {
+        // 2. Play high-quality bundled AI sample with 0ms latency & genuine distinct voice!
+        audioService.speakDialogueLine(prerecorded.text, () => setPreviewLoading(false), null, null, prerecorded.source);
       } else {
         audioService.speakDialogueLine(sampleText, () => setPreviewLoading(false), voiceProfile);
       }
     } catch (_) {
-      // Graceful fallback to device speech
-      audioService.speakDialogueLine('Alo, tôi đang gọi cho bạn đây!', () => setPreviewLoading(false));
+      const fallbackSample = getPrerecordedSample(selectedVoiceId);
+      if (fallbackSample?.source) {
+        audioService.speakDialogueLine(fallbackSample.text, () => setPreviewLoading(false), null, null, fallbackSample.source);
+      } else {
+        audioService.speakDialogueLine('Alo, tôi đang gọi cho bạn đây!', () => setPreviewLoading(false));
+      }
     } finally {
-      setTimeout(() => setPreviewLoading(false), 2500);
+      setTimeout(() => setPreviewLoading(false), 3000);
     }
   };
 
