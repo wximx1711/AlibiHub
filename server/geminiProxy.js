@@ -439,19 +439,36 @@ const GEMINI_VOICES = {
   aoede: 'Aoede',
 };
 
-function resolveVoiceName(voiceName, callerRole = '', callerName = '') {
+function resolveVoiceName(voiceName, callerRole = '', callerName = '', gender = '') {
   if (voiceName && voiceName !== 'auto') {
     const key = voiceName.toLowerCase();
     if (GEMINI_VOICES[key]) return GEMINI_VOICES[key];
     return voiceName;
   }
 
+  // Explicit gender takes priority over ambiguous keyword matching
+  if (gender === 'female') {
+    const textToScan = ` ${callerRole} ${callerName} `.toLowerCase();
+    if (/(mẹ|má|u|bà|chị|dì|cô|bác gái|mother|mom)/i.test(textToScan)) return 'Kore';
+    return 'Aoede'; // Natural energetic female voice for Linh, shipper, colleague, friend
+  }
+  if (gender === 'male') {
+    const textToScan = ` ${callerRole} ${callerName} `.toLowerCase();
+    if (/(sếp|giám đốc|trưởng phòng|quản lý|boss)/i.test(textToScan)) return 'Fenrir';
+    if (/(bạn|đồng nghiệp|tuấn anh|em|friend)/i.test(textToScan)) return 'Puck';
+    return 'Charon';
+  }
+
   const roleKey = (callerRole || '').toLowerCase().trim();
   if (GEMINI_VOICES[roleKey]) return GEMINI_VOICES[roleKey];
 
   const textToScan = ` ${callerRole} ${callerName} `.toLowerCase();
-  if (/(^|[\s,._-])(mẹ|má|u|bà|chị|dì|cô|bác gái|nữ|mother|mom)([\s,._-]|$)/i.test(textToScan)) return 'Kore';
-  if (/(^|[\s,._-])(bố|ba|cha|chú|bác trai|ông|father|dad)([\s,._-]|$)/i.test(textToScan)) return 'Charon';
+  // Female indicators (including Vietnamese female names like Linh, Mai, Hoa, Nhung, Trang)
+  if (/(^|[\s,._-])(linh|hoa|mai|nhung|trang|hương|ngọc|hà|thảo|thủy|quỳnh|lan|phương|anh thư|mẹ|má|u|bà|chị|dì|cô|bác gái|nữ|mother|mom)([\s,._-]|$)/i.test(textToScan)) {
+    if (/(mẹ|má|u|bà|dì|cô|mother|mom)/i.test(textToScan)) return 'Kore';
+    return 'Aoede';
+  }
+  if (/(^|[\s,._-])(bố|ba|cha|chú|bác trai|ông|father|dad|tổ dân phố|hàng xóm|chú hùng)([\s,._-]|$)/i.test(textToScan)) return 'Charon';
   if (/(sếp|giám đốc|trưởng phòng|quản lý|đối tác|công ty|văn phòng|boss|manager)/i.test(textToScan)) return 'Fenrir';
   if (/(shipper|giao hàng|tài xế|bưu tá|xe ôm|delivery)/i.test(textToScan)) return 'Aoede';
   if (/(bạn|bồ|người yêu|đồng nghiệp|em|friend|crush)/i.test(textToScan)) return 'Puck';
@@ -464,6 +481,7 @@ async function generateGeminiTts(apiKey, {
   voiceName = 'auto',
   callerRole = '',
   callerName = '',
+  gender = '',
   isPreview = false,
 }) {
   if (!rawText || !rawText.trim()) {
@@ -476,7 +494,7 @@ async function generateGeminiTts(apiKey, {
     .replace(/^\[[^\]]*\]\s*/g, '')
     .trim();
 
-  const selectedVoice = resolveVoiceName(voiceName, callerRole, callerName);
+  const selectedVoice = resolveVoiceName(voiceName, callerRole, callerName, gender);
   const cacheKey = isPreview
     ? `preview:${selectedVoice.toLowerCase()}`
     : `${selectedVoice.toLowerCase()}:${cleanText.toLowerCase()}`;

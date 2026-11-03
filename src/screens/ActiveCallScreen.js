@@ -63,7 +63,7 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
     ...baseProfile,
     voiceIdentifier: selectVietnameseVoice(audioService.availableVoices, personaKey),
   };
-  const geminiVoice = getGeminiVoiceForCaller(caller, scenarioTitle, category, callPayload?.voiceId);
+  const geminiVoice = getGeminiVoiceForCaller(caller, scenarioTitle, category, callPayload?.voiceId || caller?.voiceId);
   const voiceName = geminiVoice?.geminiVoice || 'Kore';
   const dialogueList = getDynamicRoleDialogue(caller, scenarioTitle, category, callPayload?.dialogue);
 
@@ -141,6 +141,7 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
         userUtterance: trimmedText,
         conversationHistory: conversationHistoryRef.current,
         voiceName,
+        gender: caller.gender || 'auto',
       });
       if (res?.reply) {
         reply = res.reply;
@@ -255,6 +256,7 @@ export default function ActiveCallScreen({ callPayload, onHangUp }) {
         voiceName,
         callerRole: caller.role,
         callerName: caller.name,
+        gender: caller.gender || 'auto',
       })
         .then((res) => {
           if (!callEndedRef.current) {

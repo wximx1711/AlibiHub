@@ -1,5 +1,6 @@
 /**
  * Default Vietnamese Caller Profiles
+ * Standard data-driven caller profiles with decoupled identity, gender, voiceId, and persona.
  */
 
 export const DEFAULT_CALLERS = [
@@ -11,17 +12,31 @@ export const DEFAULT_CALLERS = [
     avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
     initials: 'MY',
     avatarBg: '#EC4899',
+    gender: 'female',
+    voiceId: 'kore',
+    persona: 'FAMILY_MOM',
+    speakingStyle: 'Ấm áp, dặn dò việc gia đình',
+    preferredUi: 'android',
+    greeting: 'Con à, mẹ đang đợi cơm con ở nhà này, về sớm đi nhé!',
     isPinned: true,
+    isDefault: true,
   },
   {
     id: 'caller_boss',
-    name: 'Sếp Hoàng (Trưởng phòng)',
-    role: 'Công sở / Việc gấp',
+    name: 'Sếp Hoàng',
+    role: 'Trưởng phòng / Việc gấp',
     phoneNumber: '0903 888 999',
     avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
     initials: 'SH',
     avatarBg: '#3B82F6',
+    gender: 'male',
+    voiceId: 'fenrir',
+    persona: 'BOSS',
+    speakingStyle: 'Nghiêm túc, dứt khoát công việc',
+    preferredUi: 'android',
+    greeting: 'Cậu quay lại văn phòng ngay để họp xử lý hợp đồng nhé.',
     isPinned: true,
+    isDefault: false,
   },
   {
     id: 'caller_shipper',
@@ -31,7 +46,14 @@ export const DEFAULT_CALLERS = [
     avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
     initials: 'SP',
     avatarBg: '#10B981',
+    gender: 'female',
+    voiceId: 'aoede',
+    persona: 'SHIPPER',
+    speakingStyle: 'Nhanh nhẹn, hối hả giao hàng',
+    preferredUi: 'android',
+    greeting: 'Alo anh ơi, em giao hàng tới chân chung cư rồi, anh xuống lấy giúp em nhé.',
     isPinned: false,
+    isDefault: false,
   },
   {
     id: 'caller_friend',
@@ -41,17 +63,30 @@ export const DEFAULT_CALLERS = [
     avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
     initials: 'BL',
     avatarBg: '#8B5CF6',
+    gender: 'female',
+    voiceId: 'aoede', // Appropriate natural female Vietnamese voice (Aoede)
+    persona: 'FRIEND',
+    speakingStyle: 'Tự nhiên, thân mật, cầu cứu bạn',
+    preferredUi: 'messenger',
+    greeting: 'Ê mày, đang ở đâu đấy, qua tao cà phê tí đi!',
     isPinned: true,
+    isDefault: false,
   },
   {
     id: 'caller_neighbor',
-    name: 'Chú Hùng (Tổ dân phố / Hàng xóm)',
-    role: 'Sự cố gia đình',
+    name: 'Chú Hùng',
+    role: 'Tổ dân phố / Hàng xóm',
     phoneNumber: '0988 222 333',
     avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
     initials: 'CH',
     avatarBg: '#F59E0B',
+    gender: 'male',
+    voiceId: 'charon', // Deep mature male voice
+    persona: 'NEIGHBOR', // Dedicated independent neighborhood acquaintance persona (NOT Father!)
+    speakingStyle: 'Điềm đạm, khẩn trương việc khu phố',
+    preferredUi: 'android',
+    greeting: 'Alo cháu à, chú Hùng tổ dân phố đây. Nhà cháu hình như đang có sự cố cần người nhà về kiểm tra ngay!',
     isPinned: false,
+    isDefault: false,
   },
 ];
-

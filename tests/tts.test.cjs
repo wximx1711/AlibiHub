@@ -9,9 +9,18 @@ test('resolveVoiceName maps caller roles to correct Gemini prebuilt voices', () 
   assert.equal(resolveVoiceName('auto', 'Bạn thân', 'Tuấn Anh'), 'Puck');
   assert.equal(resolveVoiceName('auto', 'Shipper giao hàng', 'Shipper'), 'Aoede');
 
+  // Female friend Linh maps to natural female voice Aoede
+  assert.equal(resolveVoiceName('auto', 'Bạn bè', 'Bạn thân Linh'), 'Aoede');
+  assert.equal(resolveVoiceName('auto', 'Bạn bè', 'Linh', 'female'), 'Aoede');
+
+  // Chú Hùng / Tổ dân phố maps to independent mature male Charon, not father
+  assert.equal(resolveVoiceName('auto', 'Tổ dân phố / Hàng xóm', 'Chú Hùng'), 'Charon');
+  assert.equal(resolveVoiceName('auto', 'Hàng xóm', 'Bác Nam', 'male'), 'Charon');
+
   // Manual selection overrides role
   assert.equal(resolveVoiceName('fenrir', 'Gia đình', 'Mẹ'), 'Fenrir');
   assert.equal(resolveVoiceName('charon', 'Bạn bè', 'Linh'), 'Charon');
+  assert.equal(resolveVoiceName('aoede', 'Bạn bè', 'Linh'), 'Aoede');
 });
 
 test('generateGeminiTts serves pre-cached high-quality audio for preview and role greetings with zero latency', async () => {

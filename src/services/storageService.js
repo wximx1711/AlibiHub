@@ -3,10 +3,10 @@
  * Uses AsyncStorage for reliable offline persistence across app restarts.
  */
 
-import { text, phone, delay, dialogue, AMBIENTS, proxyUrl } from '../utils/validation';
+import { text, phone, delay, dialogue, avatar, AMBIENTS, proxyUrl } from '../utils/validation.js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DEFAULT_CALLERS } from '../data/defaultCallers';
-import { DEFAULT_SCENARIOS } from '../data/defaultScenarios';
+import { DEFAULT_CALLERS } from '../data/defaultCallers.js';
+import { DEFAULT_SCENARIOS } from '../data/defaultScenarios.js';
 
 const STORAGE_KEYS = {
   CALLERS: '@alibihub_callers_v1',
@@ -60,13 +60,71 @@ async function initializeStorageIfNeededImpl() {
 // CALLER PROFILES (FE1 & FE3)
 // ==========================================
 
+export function migrateCallerProfile(caller) {
+  if (!caller || typeof caller !== 'object') return caller;
+  const updated = { ...caller };
+
+  // 1. Fix "Bạn thân Linh": must use appropriate female voice Aoede
+  if (caller.id === 'caller_friend' || (caller.name && caller.name.includes('Linh'))) {
+    if (!caller.voiceId || caller.voiceId === 'puck' || caller.voiceId === 'auto') {
+      updated.voiceId = 'aoede';
+    }
+    if (!caller.gender || caller.gender === 'auto') {
+      updated.gender = 'female';
+    }
+    if (!caller.persona) {
+      updated.persona = 'FRIEND';
+    }
+  }
+
+  // 2. Fix "Chú Hùng": independent NEIGHBOR persona, older male Charon voice (NOT Father!)
+  if (caller.id === 'caller_neighbor' || (caller.name && caller.name.includes('Chú Hùng'))) {
+    if (!caller.persona || caller.persona === 'FAMILY_DAD') {
+      updated.persona = 'NEIGHBOR';
+    }
+    if (!caller.gender) {
+      updated.gender = 'male';
+    }
+    if (!caller.voiceId || caller.voiceId === 'auto') {
+      updated.voiceId = 'charon';
+    }
+  }
+
+  // 3. Defaults for other starters
+  if (caller.id === 'caller_mom') {
+    if (!caller.gender) updated.gender = 'female';
+    if (!caller.voiceId) updated.voiceId = 'kore';
+    if (!caller.persona) updated.persona = 'FAMILY_MOM';
+  }
+  if (caller.id === 'caller_boss') {
+    if (!caller.gender) updated.gender = 'male';
+    if (!caller.voiceId) updated.voiceId = 'fenrir';
+    if (!caller.persona) updated.persona = 'BOSS';
+  }
+  if (caller.id === 'caller_shipper') {
+    if (!caller.gender) updated.gender = 'female';
+    if (!caller.voiceId) updated.voiceId = 'aoede';
+    if (!caller.persona) updated.persona = 'SHIPPER';
+  }
+
+  // 4. Fallbacks for custom callers
+  if (!updated.gender) updated.gender = 'auto';
+  if (!updated.voiceId) updated.voiceId = 'auto';
+  if (!updated.persona) updated.persona = 'DEFAULT';
+  if (!updated.initials && updated.name) {
+    updated.initials = updated.name.substring(0, 2).toUpperCase();
+  }
+
+  return updated;
+}
+
 export async function getCallers() {
   try {
     const json = await AsyncStorage.getItem(STORAGE_KEYS.CALLERS);
     if (!json) return DEFAULT_CALLERS;
     const parsed = JSON.parse(json);
     if (!Array.isArray(parsed)) throw new Error('Dữ liệu lưu trữ không hợp lệ.');
-    return parsed;
+    return parsed.map(c => migrateCallerProfile(c));
   } catch (error) {
     console.error('Failed to get callers:', error);
     throw error;
@@ -74,23 +132,44 @@ export async function getCallers() {
 }
 
 async function saveCallerImpl(callerData) {
-  callerData = { ...callerData, name: text(callerData.name, 'Tên người gọi', 1, 80), phoneNumber: phone(callerData.phoneNumber) };
+  callerData = {
+    ...callerData,
+    name: text(callerData.name, 'Tên người gọi', 1, 80),
+    phoneNumber: phone(callerData.phoneNumber),
+    avatarUrl: avatar(callerData.avatarUrl),
+  };
   try {
-    if (callerData.avatarUrl && !/^https:\/\//.test(callerData.avatarUrl)) throw new Error('Ảnh đại diện phải dùng HTTPS.');
     const callers = await getCallers();
     const isEdit = callerData.id && callers.some((c) => c.id === callerData.id);
 
     const callerToSave = {
       ...callerData,
       id: callerData.id || `caller_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      gender: callerData.gender || 'auto',
+      voiceId: callerData.voiceId || 'auto',
+      persona: callerData.persona || 'DEFAULT',
+      speakingStyle: callerData.speakingStyle || '',
+      preferredUi: callerData.preferredUi || 'android',
+      greeting: callerData.greeting || '',
+      initials: callerData.initials || callerData.name.substring(0, 2).toUpperCase(),
+      avatarBg: callerData.avatarBg || '#C66A2B',
       updatedAt: new Date().toISOString(),
     };
 
     let updatedList;
-    if (isEdit) {
-      updatedList = callers.map((c) => (c.id === callerToSave.id ? callerToSave : c));
+    if (callerToSave.isDefault) {
+      const sanitized = callers.map(c => ({ ...c, isDefault: false }));
+      if (isEdit) {
+        updatedList = sanitized.map(c => (c.id === callerToSave.id ? callerToSave : c));
+      } else {
+        updatedList = [callerToSave, ...sanitized];
+      }
     } else {
-      updatedList = [callerToSave, ...callers];
+      if (isEdit) {
+        updatedList = callers.map((c) => (c.id === callerToSave.id ? callerToSave : c));
+      } else {
+        updatedList = [callerToSave, ...callers];
+      }
     }
 
     await AsyncStorage.setItem(STORAGE_KEYS.CALLERS, JSON.stringify(updatedList));
@@ -98,6 +177,45 @@ async function saveCallerImpl(callerData) {
   } catch (error) {
     console.error('Failed to save caller:', error);
     throw new Error(`Không thể lưu hồ sơ người gọi: ${error.message}`);
+  }
+}
+
+async function duplicateCallerImpl(callerId) {
+  try {
+    const callers = await getCallers();
+    const source = callers.find((c) => c.id === callerId);
+    if (!source) throw new Error('Không tìm thấy người gọi để nhân bản.');
+
+    const newCaller = {
+      ...source,
+      id: `caller_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      name: `${source.name} (Bản sao)`,
+      isDefault: false,
+      isPinned: false,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const updatedList = [newCaller, ...callers];
+    await AsyncStorage.setItem(STORAGE_KEYS.CALLERS, JSON.stringify(updatedList));
+    return newCaller;
+  } catch (error) {
+    console.error('Failed to duplicate caller:', error);
+    throw new Error(`Không thể nhân bản người gọi: ${error.message}`);
+  }
+}
+
+async function setDefaultCallerImpl(callerId) {
+  try {
+    const callers = await getCallers();
+    const updatedList = callers.map((c) => ({
+      ...c,
+      isDefault: c.id === callerId,
+    }));
+    await AsyncStorage.setItem(STORAGE_KEYS.CALLERS, JSON.stringify(updatedList));
+    return updatedList;
+  } catch (error) {
+    console.error('Failed to set default caller:', error);
+    throw new Error(`Không thể đặt người gọi mặc định: ${error.message}`);
   }
 }
 
@@ -201,6 +319,31 @@ async function deleteScenarioImpl(scenarioId) {
   } catch (error) {
     console.error('Failed to delete scenario:', error);
     throw new Error(`Không thể xóa kịch bản: ${error.message}`);
+  }
+}
+
+async function duplicateScenarioImpl(scenarioId) {
+  try {
+    const scenarios = await getScenarios();
+    const source = scenarios.find((s) => s.id === scenarioId);
+    if (!source) throw new Error('Không tìm thấy kịch bản để nhân bản.');
+
+    const newScenario = {
+      ...source,
+      id: `sc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      title: `${source.title} (Bản sao)`,
+      isCustom: true,
+      isFavorite: false,
+      isPinned: false,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const updatedList = [newScenario, ...scenarios];
+    await AsyncStorage.setItem(STORAGE_KEYS.SCENARIOS, JSON.stringify(updatedList));
+    return newScenario;
+  } catch (error) {
+    console.error('Failed to duplicate scenario:', error);
+    throw new Error(`Không thể nhân bản kịch bản: ${error.message}`);
   }
 }
 
@@ -363,8 +506,11 @@ let writeQueue = Promise.resolve();
 function mutate(fn) { const next = writeQueue.then(fn); writeQueue = next.catch(() => {}); return next; }
 export function initializeStorageIfNeeded(...args) { return mutate(() => initializeStorageIfNeededImpl(...args)); }
 export function saveCaller(...args) { return mutate(() => saveCallerImpl(...args)); }
+export function duplicateCaller(...args) { return mutate(() => duplicateCallerImpl(...args)); }
+export function setDefaultCaller(...args) { return mutate(() => setDefaultCallerImpl(...args)); }
 export function deleteCaller(...args) { return mutate(() => deleteCallerImpl(...args)); }
 export function saveScenario(...args) { return mutate(() => saveScenarioImpl(...args)); }
+export function duplicateScenario(...args) { return mutate(() => duplicateScenarioImpl(...args)); }
 export function toggleScenarioFavorite(...args) { return mutate(() => toggleScenarioFavoriteImpl(...args)); }
 export function toggleScenarioPin(...args) { return mutate(() => toggleScenarioPinImpl(...args)); }
 export function deleteScenario(...args) { return mutate(() => deleteScenarioImpl(...args)); }

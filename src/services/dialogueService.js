@@ -42,6 +42,12 @@ export const VOICE_PROFILES = {
     persona: 'Bác sĩ/Y tế',
     description: 'Giọng điềm đạm, chuẩn mực, thông báo sức khỏe',
   },
+  NEIGHBOR: {
+    pitch: 0.93,
+    rate: 0.95,
+    persona: 'Tổ dân phố / Hàng xóm',
+    description: 'Giọng trầm, điềm đạm, khẩn trương việc khu phố',
+  },
   DEFAULT: {
     pitch: 1.00,
     rate: 0.96,
@@ -52,6 +58,18 @@ export const VOICE_PROFILES = {
 
 // Rich roleplay dialogue collections with multiple natural variations
 export const ROLE_DIALOGUES = {
+  NEIGHBOR: [
+    [
+      'Alo cháu à, chú Hùng tổ dân phố đây. Nhà cháu hình như đang bị rò nước chảy tràn ra ngoài hành lang này!',
+      'Bác tổ trưởng với mấy cô chú đang đứng trước cửa nhà cháu kiểm tra đây, cháu thu xếp chạy về mở cửa gấp giúp chú nhé!',
+      'Ừ nhanh cháu nhé, chú khóa tạm van tổng ngoài này rồi, về tới nơi gọi chú ngay!',
+    ],
+    [
+      'Alo cháu ơi, chú gọi báo gấp là khu phố mình đang cắt điện sửa chữa đường dây đột xuất, nhà cháu có cắm thiết bị gì cần ngắt không?',
+      'Cháu nhờ người nhà hoặc tranh thủ ghé qua rút điện tủ lạnh với máy tính nhé kẻo chập cháy.',
+      'Ừ việc an toàn điện đóm gấp lắm, cháu sắp xếp sớm nhé!',
+    ],
+  ],
   FAMILY_MOM: [
     [
       'Alo con à? Con đang ở đâu đấy, về nhà gấp giúp mẹ với, họ hàng ở quê vừa lên tới nhà đột xuất đây này!',
@@ -143,12 +161,30 @@ export const ROLE_DIALOGUES = {
  * 3. Scenario title as supporting info only
  */
 export function detectCallerPersona(caller = {}, scenarioTitle = '', category = '') {
-  const role = (caller.role || '').toLowerCase().trim();
-  const name = (caller.name || '').toLowerCase().trim();
+  const callerObj = typeof caller === 'string' ? { name: caller } : (caller || {});
+
+  // 0. Explicit caller profile persona priority
+  if (callerObj?.persona) {
+    const p = String(callerObj.persona).toUpperCase().trim();
+    if (ROLE_DIALOGUES[p]) return p;
+    if (p === 'NEIGHBOR') return 'NEIGHBOR';
+    if (p === 'FRIEND_FEMALE' || p === 'FRIEND_MALE') return 'FRIEND';
+  }
+
+  const role = (callerObj.role || '').toLowerCase().trim();
+  const name = (callerObj.name || (typeof caller === 'string' ? caller : '')).toLowerCase().trim();
   const title = (scenarioTitle || '').toLowerCase().trim();
   const cat = (category || '').toLowerCase().trim();
 
-  // 1. Mom / Female elder family (check role and name)
+  // 1. Neighbor / Community acquaintance / Ward leader (Must NOT inherit Father!)
+  if (
+    role.includes('tổ dân phố') || role.includes('hàng xóm') || role.includes('khu phố') || role.includes('ban quản lý') ||
+    name.includes('tổ dân phố') || name.includes('hàng xóm') || name.includes('chú hùng') || name.includes('tổ trưởng')
+  ) {
+    return 'NEIGHBOR';
+  }
+
+  // 2. Mom / Female elder family (check role and name)
   if (
     role.includes('mẹ') || role.includes('má') || role.includes('mama') || role.includes('mom') || role.includes('mẫu thân') ||
     name.includes('mẹ') || name.includes('má') || name.includes('mama') || name.includes('mom') || name.includes('mẹ yêu')
@@ -156,10 +192,10 @@ export function detectCallerPersona(caller = {}, scenarioTitle = '', category = 
     return 'FAMILY_MOM';
   }
 
-  // 2. Dad / Male elder family (check role and name)
+  // 3. Dad / Male elder family (check role and name - ONLY Father keywords, not general uncles/neighbors!)
   if (
-    role.includes('bố') || role.includes('ba') || role.includes('cha') || role.includes('phụ thân') || role.includes('bác') || role.includes('chú') ||
-    name.includes('bố') || name.includes('ba') || name.includes('cha') || name.includes('bố yêu') || name.includes('chú') || name.includes('bác')
+    role.includes('bố') || role.includes('ba') || role.includes('cha') || role.includes('phụ thân') ||
+    name.includes('bố') || name.includes('ba') || name.includes('cha') || name.includes('bố yêu')
   ) {
     return 'FAMILY_DAD';
   }
@@ -486,6 +522,13 @@ export function generateOfflineCallReply({
     return 'Anh chị tranh thủ xuống nhận sớm giúp em để em kịp giao các đơn tiếp theo nha!';
   }
 
+  if (persona === 'NEIGHBOR') {
+    if (isAgreeingOrLeaving) return 'Ừ cháu về nhanh giúp chú nhé, chú với bà con đang đứng đợi trước cửa nhà cháu đây!';
+    if (isBusyOrReluctant) return 'Nước tràn sang nhà bên cạnh rồi đấy cháu ơi, việc gấp lắm, cháu thu xếp về xử lý liền đi!';
+    if (isListeningOrAsking) return 'Chú Hùng tổ dân phố đây, nhà cháu có sự cố kỹ thuật cần người nhà về mở cửa kiểm tra gấp nhé!';
+    return 'Cháu tranh thủ chạy về mở cửa kiểm tra gấp giúp chú và ban quản lý khu phố nhé!';
+  }
+
   if (persona === 'DOCTOR') {
     return 'Bác sĩ trực tiếp dặn bạn cần có mặt để trao đổi kết quả, bạn di chuyển qua phòng khám ngay nhé.';
   }
@@ -510,80 +553,111 @@ export const GEMINI_VOICE_PROFILES = [
     id: 'auto',
     name: 'auto',
     geminiVoice: 'Kore',
-    label: 'Tự động (Theo vai trò)',
-    description: 'Tự động chọn giọng chuẩn nhất theo vai trò người gọi',
+    label: 'Tự động (Theo vai trò & giới tính)',
+    description: 'Tự động chọn giọng chuẩn nhất theo thông tin người gọi',
     previewText: 'AlibiHub sẽ tự động chọn giọng nói chuẩn xác theo vai trò người gọi.',
   },
   {
     id: 'kore',
     name: 'Kore',
     geminiVoice: 'Kore',
-    label: 'Mẹ (Kore - Nữ ấm áp)',
-    description: 'Giọng nữ ấm áp, tình cảm, quen thuộc',
+    label: 'Kore (Nữ - Ấm áp)',
+    description: 'Giọng nữ ấm áp, tình cảm, quen thuộc (Mẹ, Người thân, Chị em)',
     role: 'mother',
     gender: 'female',
-    previewText: 'Con à, mẹ đang đợi cơm con ở nhà này, về sớm đi nhé!',
-  },
-  {
-    id: 'charon',
-    name: 'Charon',
-    geminiVoice: 'Charon',
-    label: 'Bố (Charon - Nam trầm ấm)',
-    description: 'Giọng nam trưởng thành, điềm đạm, nghiêm nghị',
-    role: 'father',
-    gender: 'male',
-    previewText: 'Bố nghe đây con, có việc gì gấp không?',
-  },
-  {
-    id: 'fenrir',
-    name: 'Fenrir',
-    geminiVoice: 'Fenrir',
-    label: 'Sếp (Fenrir - Nam quyết đoán)',
-    description: 'Giọng nam công sở tự tin, dứt khoát',
-    role: 'boss',
-    gender: 'male',
-    previewText: 'Cậu quay lại văn phòng ngay để họp xử lý hợp đồng nhé.',
-  },
-  {
-    id: 'puck',
-    name: 'Puck',
-    geminiVoice: 'Puck',
-    label: 'Bạn bè (Puck - Trẻ trung)',
-    description: 'Giọng tự nhiên, thân mật, gần gũi',
-    role: 'friend',
-    gender: 'neutral',
-    previewText: 'Ê mày, đang ở đâu đấy, qua tao cà phê tí đi!',
+    previewText: 'Alo, tôi đang gọi cho bạn đây, có việc gấp cần trao đổi ngay!',
   },
   {
     id: 'aoede',
     name: 'Aoede',
     geminiVoice: 'Aoede',
-    label: 'Shipper (Aoede - Năng động)',
-    description: 'Giọng linh hoạt, nhanh nhẹn, tự nhiên',
-    role: 'shipper',
+    label: 'Aoede (Nữ - Năng động)',
+    description: 'Giọng nữ trẻ trung, trong trẻo, hoạt bát (Bạn thân Linh, Shipper, Đồng nghiệp nữ)',
+    role: 'friend_female',
     gender: 'female',
-    previewText: 'Alo anh ơi, em giao hàng tới chân chung cư rồi, anh xuống lấy giúp em nhé.',
+    previewText: 'Alo, tôi đang gọi cho bạn đây, có việc gấp cần trao đổi ngay!',
+  },
+  {
+    id: 'charon',
+    name: 'Charon',
+    geminiVoice: 'Charon',
+    label: 'Charon (Nam - Trầm ấm)',
+    description: 'Giọng nam trưởng thành, điềm đạm, nghiêm nghị (Bố, Chú Hùng, Người lớn tuổi)',
+    role: 'father',
+    gender: 'male',
+    previewText: 'Alo, tôi đang gọi cho bạn đây, có việc gấp cần trao đổi ngay!',
+  },
+  {
+    id: 'fenrir',
+    name: 'Fenrir',
+    geminiVoice: 'Fenrir',
+    label: 'Fenrir (Nam - Quyết đoán)',
+    description: 'Giọng nam công sở dứt khoát, chuyên nghiệp (Sếp Hoàng, Quản lý, Đối tác)',
+    role: 'boss',
+    gender: 'male',
+    previewText: 'Alo, tôi đang gọi cho bạn đây, có việc gấp cần trao đổi ngay!',
+  },
+  {
+    id: 'puck',
+    name: 'Puck',
+    geminiVoice: 'Puck',
+    label: 'Puck (Nam - Trẻ trung)',
+    description: 'Giọng nam tự nhiên, xuề xòa, thân mật (Bạn bè nam, Đồng nghiệp trẻ)',
+    role: 'friend_male',
+    gender: 'male',
+    previewText: 'Alo, tôi đang gọi cho bạn đây, có việc gấp cần trao đổi ngay!',
   },
 ];
 
-export function getGeminiVoiceForCaller(caller, scenarioTitle = '', category = '', manualVoiceId = 'auto') {
-  if (manualVoiceId && manualVoiceId !== 'auto') {
-    const found = GEMINI_VOICE_PROFILES.find((p) => p.id === manualVoiceId.toLowerCase() || p.name.toLowerCase() === manualVoiceId.toLowerCase());
+export function getGeminiVoiceForCaller(caller = {}, scenarioTitle = '', category = '', manualVoiceId = 'auto') {
+  // 1. Explicit voiceId saved in caller profile
+  if (caller?.voiceId && caller.voiceId !== 'auto') {
+    const found = GEMINI_VOICE_PROFILES.find(
+      (p) => p.id === caller.voiceId.toLowerCase() || p.name.toLowerCase() === caller.voiceId.toLowerCase()
+    );
     if (found && found.id !== 'auto') return found;
   }
 
+  // 2. Manual voice override passed from Setup Screen
+  if (manualVoiceId && manualVoiceId !== 'auto') {
+    const found = GEMINI_VOICE_PROFILES.find(
+      (p) => p.id === manualVoiceId.toLowerCase() || p.name.toLowerCase() === manualVoiceId.toLowerCase()
+    );
+    if (found && found.id !== 'auto') return found;
+  }
+
+  // 3. Gender preference in caller profile
+  if (caller?.gender === 'female') {
+    const pKey = detectCallerPersona(caller, scenarioTitle, category);
+    if (pKey === 'FAMILY_MOM') return GEMINI_VOICE_PROFILES.find((p) => p.id === 'kore');
+    return GEMINI_VOICE_PROFILES.find((p) => p.id === 'aoede');
+  }
+  if (caller?.gender === 'male') {
+    const pKey = detectCallerPersona(caller, scenarioTitle, category);
+    if (pKey === 'BOSS') return GEMINI_VOICE_PROFILES.find((p) => p.id === 'fenrir');
+    if (pKey === 'FRIEND') return GEMINI_VOICE_PROFILES.find((p) => p.id === 'puck');
+    return GEMINI_VOICE_PROFILES.find((p) => p.id === 'charon');
+  }
+
+  // 4. Persona-driven fallback
   const personaKey = detectCallerPersona(caller, scenarioTitle, category);
   switch (personaKey) {
     case 'FAMILY_MOM':
       return GEMINI_VOICE_PROFILES.find((p) => p.id === 'kore');
     case 'FAMILY_DAD':
+    case 'NEIGHBOR':
       return GEMINI_VOICE_PROFILES.find((p) => p.id === 'charon');
     case 'BOSS':
       return GEMINI_VOICE_PROFILES.find((p) => p.id === 'fenrir');
-    case 'FRIEND':
-      return GEMINI_VOICE_PROFILES.find((p) => p.id === 'puck');
     case 'SHIPPER':
       return GEMINI_VOICE_PROFILES.find((p) => p.id === 'aoede');
+    case 'FRIEND': {
+      const name = (caller?.name || '').toLowerCase();
+      if (/(linh|hoa|mai|nhung|trang|hương|ngọc|hà|thảo|thủy|quỳnh|lan|phương|anh thư|gái|nữ)/i.test(name)) {
+        return GEMINI_VOICE_PROFILES.find((p) => p.id === 'aoede');
+      }
+      return GEMINI_VOICE_PROFILES.find((p) => p.id === 'puck');
+    }
     default: {
       const textToScan = `${caller?.role || ''} ${caller?.name || ''}`.toLowerCase();
       if (/(bố|ba|cha|chú|bác trai|ông|nam)/i.test(textToScan)) {

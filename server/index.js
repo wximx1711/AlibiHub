@@ -264,12 +264,13 @@ const server = http.createServer((req, res) => {
               error: 'Chưa cấu hình GEMINI_API_KEY trên máy chủ proxy. Vui lòng thiết lập biến môi trường GEMINI_API_KEY.',
             });
           }
-          const { text, voiceName, callerRole, callerName, isPreview } = body;
+          const { text, voiceName, callerRole, callerName, gender, isPreview } = body;
           const result = await generateGeminiTts(activeApiKey, {
             text,
             voiceName,
             callerRole,
             callerName,
+            gender,
             isPreview,
           });
           if (!result.success) {

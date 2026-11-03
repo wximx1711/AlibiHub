@@ -4,9 +4,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TextInput,
   TouchableOpacity,
-  Modal,
   Alert,
 } from 'react-native';
 import { colors, typography, spacing, borderRadius } from '../theme/colors';
@@ -14,6 +12,7 @@ import Header from '../components/Header';
 import ScenarioCard from '../components/ScenarioCard';
 import CallerCard from '../components/CallerCard';
 import ConfirmModal from '../components/ConfirmModal';
+import CallerProfileModal from '../components/CallerProfileModal';
 
 export default function VaultScreen({
   callers = [],
@@ -23,8 +22,11 @@ export default function VaultScreen({
   onLaunchScenario,
   onToggleFavorite,
   onDeleteScenario,
+  onDuplicateScenario,
   onSaveCaller,
   onDeleteCaller,
+  onDuplicateCaller,
+  onSetDefaultCaller,
   onClearHistory,
   onBack,
 }) {
@@ -37,10 +39,6 @@ export default function VaultScreen({
   // Add/Edit Caller Modal
   const [callerModalVisible, setCallerModalVisible] = useState(false);
   const [editingCaller, setEditingCaller] = useState(null);
-  const [inputCallerName, setInputCallerName] = useState('');
-  const [inputCallerPhone, setInputCallerPhone] = useState('');
-  const [inputAvatar, setInputAvatar] = useState('');
-  const [inputCallerRole, setInputCallerRole] = useState('');
 
   const savedScenarios = scenarios.filter((s) => s.isCustom || s.isFavorite);
 
@@ -64,57 +62,34 @@ export default function VaultScreen({
     if (!deleteTarget) return;
 
     try {
-    if (deleteTarget.type === 'scenario') {
-      await onDeleteScenario(deleteTarget.id);
-    } else if (deleteTarget.type === 'caller') {
-      await onDeleteCaller(deleteTarget.id);
-    } else if (deleteTarget.type === 'history') {
-      await onClearHistory();
-    }
+      if (deleteTarget.type === 'scenario') {
+        await onDeleteScenario(deleteTarget.id);
+      } else if (deleteTarget.type === 'caller') {
+        await onDeleteCaller(deleteTarget.id);
+      } else if (deleteTarget.type === 'history') {
+        await onClearHistory();
+      }
 
-    setDeleteModalVisible(false);
-    setDeleteTarget(null);
-    } catch(err) { Alert.alert('Không thể xóa', err.message); }
+      setDeleteModalVisible(false);
+      setDeleteTarget(null);
+    } catch (err) {
+      Alert.alert('Không thể xóa', err.message);
+    }
   };
 
   // Open add/edit caller modal
   const openAddCallerModal = (caller = null) => {
-    if (caller) {
-      setEditingCaller(caller);
-      setInputAvatar(caller.avatarUrl || '');
-      setInputCallerName(caller.name);
-      setInputCallerPhone(caller.phoneNumber);
-      setInputCallerRole(caller.role);
-    } else {
-      setEditingCaller(null);
-      setInputAvatar('');
-      setInputCallerName('');
-      setInputCallerPhone('');
-      setInputCallerRole('');
-    }
+    setEditingCaller(caller);
     setCallerModalVisible(true);
   };
 
-  const handleSaveCallerModal = async () => {
-    if (!inputCallerName.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập tên người gọi.');
-      return;
+  const handleSaveCallerFromModal = async (callerData) => {
+    try {
+      await onSaveCaller(callerData);
+      setCallerModalVisible(false);
+    } catch (err) {
+      Alert.alert('Không thể lưu hồ sơ', err.message);
     }
-    if (!inputCallerPhone.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập số điện thoại.');
-      return;
-    }
-
-    const payload = {
-      ...(editingCaller || {}),
-      avatarUrl: inputAvatar.trim(),
-      name: inputCallerName.trim(),
-      phoneNumber: inputCallerPhone.trim(),
-      role: inputCallerRole.trim() || 'Người gọi',
-    };
-
-    try { await onSaveCaller(payload); setCallerModalVisible(false); }
-    catch(err) { Alert.alert('Không thể lưu hồ sơ', err.message); }
   };
 
   return (
@@ -176,13 +151,32 @@ export default function VaultScreen({
           <View>
             {savedScenarios.length > 0 ? (
               savedScenarios.map((sc) => (
-                <ScenarioCard
-                  key={sc.id}
-                  scenario={sc}
-                  onSelect={() => onSelectScenario(sc)}
-                  onLaunch={() => onLaunchScenario(sc)}
-                  onToggleFavorite={() => onToggleFavorite(sc.id)}
-                />
+                <View key={sc.id} style={styles.scenarioWrapper}>
+                  <ScenarioCard
+                    scenario={sc}
+                    onSelect={() => onSelectScenario(sc)}
+                    onLaunch={() => onLaunchScenario(sc)}
+                    onToggleFavorite={() => onToggleFavorite(sc.id)}
+                  />
+                  <View style={styles.scenarioExtraActions}>
+                    {onDuplicateScenario && (
+                      <TouchableOpacity
+                        style={styles.scenarioActionPill}
+                        onPress={() => onDuplicateScenario(sc.id)}
+                      >
+                        <Text style={styles.scenarioActionPillText}>📑 Nhân bản</Text>
+                      </TouchableOpacity>
+                    )}
+                    {onDeleteScenario && (
+                      <TouchableOpacity
+                        style={[styles.scenarioActionPill, styles.scenarioDeletePill]}
+                        onPress={() => promptDeleteScenario(sc)}
+                      >
+                        <Text style={[styles.scenarioActionPillText, styles.scenarioDeleteText]}>🗑️ Xóa</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
               ))
             ) : (
               <View style={styles.emptyWrap}>
@@ -207,6 +201,8 @@ export default function VaultScreen({
                 caller={c}
                 onSelect={() => openAddCallerModal(c)}
                 onEdit={() => openAddCallerModal(c)}
+                onDuplicate={() => onDuplicateCaller?.(c.id)}
+                onSetDefault={() => onSetDefaultCaller?.(c.id)}
                 onDelete={callers.length > 1 ? () => promptDeleteCaller(c) : null}
               />
             ))}
@@ -256,62 +252,15 @@ export default function VaultScreen({
         onCancel={() => setDeleteModalVisible(false)}
       />
 
-      {/* Add / Edit Caller Modal */}
-      <Modal visible={callerModalVisible} transparent animationType="slide" onRequestClose={() => setCallerModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.callerModalContent}>
-            <Text style={styles.modalTitle}>
-              {editingCaller ? 'Chỉnh sửa Người gọi' : 'Thêm Người gọi Mới'}
-            </Text>
-
-            <Text style={styles.inputLabel}>Tên hiển thị:</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={inputCallerName}
-              onChangeText={setInputCallerName}
-              placeholder="VD: Sếp Hoàng, Mẹ, Bác sĩ Hùng..."
-              placeholderTextColor={colors.textMuted}
-            />
-
-            <Text style={styles.inputLabel}>Số điện thoại:</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={inputCallerPhone}
-              onChangeText={setInputCallerPhone}
-              placeholder="VD: 0903 888 999"
-              placeholderTextColor={colors.textMuted}
-              keyboardType="phone-pad"
-            />
-
-            <Text style={styles.inputLabel}>Vai trò / Mối quan hệ:</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={inputCallerRole}
-              onChangeText={setInputCallerRole}
-              placeholder="VD: Công sở, Việc gấp, Gia đình..."
-              placeholderTextColor={colors.textMuted}
-            />
-
-            <Text style={styles.inputLabel}>Ảnh đại diện (URL HTTPS, tùy chọn)</Text>
-            <TextInput style={styles.modalInput} value={inputAvatar} onChangeText={setInputAvatar} autoCapitalize="none" maxLength={1000} />
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => setCallerModalVisible(false)}
-              >
-                <Text style={styles.modalCancelText}>Hủy bỏ</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.modalSaveBtn}
-                onPress={handleSaveCallerModal}
-              >
-                <Text style={styles.modalSaveText}>Lưu hồ sơ</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* Comprehensive Dynamic Caller Profile Modal */}
+      <CallerProfileModal
+        visible={callerModalVisible}
+        caller={editingCaller}
+        onSave={handleSaveCallerFromModal}
+        onDelete={(callerId) => onDeleteCaller?.(callerId)}
+        onDuplicate={(callerId) => onDuplicateCaller?.(callerId)}
+        onClose={() => setCallerModalVisible(false)}
+      />
     </View>
   );
 }
@@ -325,7 +274,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: colors.bgDark,
     borderBottomWidth: 1,
-    borderBottomColor: colors.bgCardBorder,
+    borderBottomColor: colors.border,
     paddingHorizontal: spacing.md,
   },
   tabItem: {
@@ -375,13 +324,45 @@ const styles = StyleSheet.create({
     maxWidth: 280,
     lineHeight: 18,
   },
+  scenarioWrapper: {
+    marginBottom: spacing.sm,
+  },
+  scenarioExtraActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.xs,
+    marginTop: -4,
+    marginBottom: spacing.xs,
+    paddingRight: spacing.xs,
+  },
+  scenarioActionPill: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.bgInput,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  scenarioActionPillText: {
+    ...typography.caption,
+    fontSize: 11,
+    color: colors.textPrimary,
+    fontWeight: '600',
+  },
+  scenarioDeletePill: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5',
+  },
+  scenarioDeleteText: {
+    color: '#DC2626',
+  },
   historyCard: {
     backgroundColor: colors.bgCard,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     marginBottom: spacing.sm,
     borderWidth: 1,
-    borderColor: colors.bgCardBorder,
+    borderColor: colors.border,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -417,65 +398,4 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeights.semiBold,
     marginTop: 4,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    padding: spacing.xl,
-  },
-  callerModalContent: {
-    backgroundColor: colors.bgCardElevated,
-    borderRadius: borderRadius.lg,
-    padding: spacing.xl,
-    borderWidth: 1,
-    borderColor: colors.bgCardBorder,
-  },
-  modalTitle: {
-    color: colors.textPrimary,
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.bold,
-    marginBottom: spacing.md,
-  },
-  inputLabel: {
-    color: colors.textSecondary,
-    fontSize: typography.fontSizes.xs,
-    marginBottom: 4,
-    marginTop: spacing.sm,
-  },
-  modalInput: {
-    backgroundColor: colors.bgInput,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    color: colors.textPrimary,
-    fontSize: typography.fontSizes.sm,
-    borderWidth: 1,
-    borderColor: colors.bgCardBorder,
-  },
-  modalBtnRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: spacing.xl,
-  },
-  modalCancelBtn: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    marginRight: spacing.md,
-  },
-  modalCancelText: {
-    color: colors.textMuted,
-    fontSize: typography.fontSizes.sm,
-  },
-  modalSaveBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-  },
-  modalSaveText: {
-    color: '#FFFFFF',
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.bold,
-  },
 });
-

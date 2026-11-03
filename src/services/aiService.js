@@ -87,6 +87,7 @@ export async function generateCallReply({
   userUtterance,
   conversationHistory = [],
   voiceName = 'auto',
+  gender = 'auto',
 }) {
   const sanitizedUtterance = text(userUtterance || '', 'Lời thoại người dùng', 1, 300);
   const data = await request(
@@ -99,6 +100,7 @@ export async function generateCallReply({
       userUtterance: sanitizedUtterance,
       conversationHistory: Array.isArray(conversationHistory) ? conversationHistory.slice(-6) : [],
       voiceName,
+      gender,
     },
     14000
   );
@@ -120,6 +122,7 @@ export async function generateTtsAudio({
   voiceName = 'Kore',
   callerRole = '',
   callerName = '',
+  gender = 'auto',
   isPreview = false,
 }) {
   const sanitizedText = text(ttsText || '', 'Văn bản đọc', 1, 500);
@@ -130,6 +133,7 @@ export async function generateTtsAudio({
       voiceName,
       callerRole,
       callerName,
+      gender,
       isPreview,
     },
     15000

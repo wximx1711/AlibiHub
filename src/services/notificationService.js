@@ -1,7 +1,7 @@
 import { Platform, AppState, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
-import { delay } from '../utils/validation';
+import { delay } from '../utils/validation.js';
 const KEY = '@alibihub_schedule_v1';
 if (Platform.OS !== 'web') Notifications.setNotificationHandler({ handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }) });
 export class ScheduledCallService {

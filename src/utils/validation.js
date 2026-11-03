@@ -31,4 +31,13 @@ function proxyUrl(value) {
   if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || /^(localhost|127\.|10\.|192\.168\.|\[::1\])/.test(url.hostname)) throw new Error('Máy chủ phải dùng HTTPS công khai, không chứa khóa hoặc mật khẩu.');
   return value.trim().replace(/\/+$/, '');
 }
-module.exports = { AMBIENTS, STYLES, CATEGORIES, text, phone, delay, dialogue, validateAiScenario, proxyUrl };
+function avatar(value) {
+  if (!value || typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (/^(https?:\/\/|file:\/\/|content:\/\/|data:image\/|blob:)/i.test(trimmed)) {
+    return trimmed;
+  }
+  throw new Error('Ảnh đại diện không hợp lệ. Vui lòng chọn ảnh từ thiết bị hoặc nhập liên kết ảnh hợp lệ.');
+}
+module.exports = { AMBIENTS, STYLES, CATEGORIES, text, phone, delay, dialogue, avatar, validateAiScenario, proxyUrl };

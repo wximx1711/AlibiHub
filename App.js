@@ -31,6 +31,9 @@ import {
   getTrustedContacts,
   saveCaller,
   deleteCaller,
+  duplicateCaller,
+  setDefaultCaller,
+  duplicateScenario,
   saveScenario,
   deleteScenario,
   toggleScenarioFavorite,
@@ -364,6 +367,21 @@ function AppContent() {
     setCallers((prev) => prev.filter((c) => c.id !== callerId));
   };
 
+  const handleDuplicateCaller = async (callerId) => {
+    const duplicated = await duplicateCaller(callerId);
+    setCallers((prev) => [duplicated, ...prev]);
+  };
+
+  const handleSetDefaultCaller = async (callerId) => {
+    const updatedList = await setDefaultCaller(callerId);
+    setCallers(updatedList);
+  };
+
+  const handleDuplicateScenario = async (scenarioId) => {
+    const duplicated = await duplicateScenario(scenarioId);
+    setScenarios((prev) => [duplicated, ...prev]);
+  };
+
   const handleClearHistory = async () => {
     await clearCallHistory();
     setCallHistory([]);
@@ -422,6 +440,10 @@ function AppContent() {
             initialConfig={callSetupInitialConfig}
             onLaunchCall={triggerIncomingCall}
             onScheduleCall={handleScheduleCall}
+            onSaveCaller={handleSaveCaller}
+            onDeleteCaller={handleDeleteCaller}
+            onDuplicateCaller={handleDuplicateCaller}
+            onSetDefaultCaller={handleSetDefaultCaller}
             onSaveTemplate={async (template) => {
               const saved = await saveScenario(template);
               setScenarios((prev) => [saved, ...prev.filter(s => s.id !== saved.id)]);
@@ -464,8 +486,11 @@ function AppContent() {
             onLaunchScenario={handleLaunchScenarioFromDetail}
             onToggleFavorite={handleToggleFavorite}
             onDeleteScenario={handleDeleteScenario}
+            onDuplicateScenario={handleDuplicateScenario}
             onSaveCaller={handleSaveCaller}
             onDeleteCaller={handleDeleteCaller}
+            onDuplicateCaller={handleDuplicateCaller}
+            onSetDefaultCaller={handleSetDefaultCaller}
             onClearHistory={handleClearHistory}
             onBack={() => setCurrentTab('home')}
           />

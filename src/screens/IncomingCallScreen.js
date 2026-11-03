@@ -34,7 +34,12 @@ export default function IncomingCallScreen({
   useEffect(() => {
     // Background pre-fetch opening greeting audio while ringing so call starts instantly
     try {
-      const voiceProfile = getGeminiVoiceForCaller(caller, callPayload?.title, caller.role, callPayload?.voiceId);
+      const voiceProfile = getGeminiVoiceForCaller(
+        caller,
+        callPayload?.title,
+        caller.role,
+        callPayload?.voiceId || caller?.voiceId
+      );
       const greeting = getCallerOpeningGreeting({
         caller,
         scenarioTitle: callPayload?.title,
@@ -46,6 +51,7 @@ export default function IncomingCallScreen({
         voiceName: voiceProfile?.geminiVoice || 'Kore',
         callerRole: caller.role,
         callerName: caller.name,
+        gender: caller.gender || 'auto',
       })
         .then((res) => {
           if (res?.audioBase64) {

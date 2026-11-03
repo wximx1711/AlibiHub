@@ -8,10 +8,12 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  Image,
 } from 'react-native';
 import { colors, typography, spacing, borderRadius } from '../theme/colors';
 import Header from '../components/Header';
 import AudioPlayerControl from '../components/AudioPlayerControl';
+import CallerProfileModal from '../components/CallerProfileModal';
 import { AMBIENT_PRESETS, audioService } from '../services/audioService';
 import {
   getDynamicRoleDialogue,
@@ -27,10 +29,14 @@ export default function SmartCallSetupScreen({
   onLaunchCall,
   onScheduleCall,
   onSaveTemplate,
+  onSaveCaller,
+  onDeleteCaller,
+  onDuplicateCaller,
+  onSetDefaultCaller,
   onBack,
 }) {
   // Prepopulate from initialConfig or default
-  const defaultCaller = callers[0] || {
+  const defaultCaller = callers.find((c) => c.isDefault) || callers[0] || {
     name: 'Mẹ Yêu',
     role: 'Gia đình',
     phoneNumber: '0912 345 678',
@@ -43,20 +49,24 @@ export default function SmartCallSetupScreen({
 
   const [title, setTitle] = useState(initialConfig?.title || 'Cuộc gọi của tôi');
   const [message, setMessage] = useState(initialConfig?.suggestedMessage || '');
-  const [avatarUrl, setAvatarUrl] = useState(initialConfig?.callerAvatar || '');
+  const [avatarUrl, setAvatarUrl] = useState(initialConfig?.callerAvatar || defaultCaller.avatarUrl || '');
   const [delaySeconds, setDelaySeconds] = useState(initialConfig?.delaySeconds ?? 10);
   const [clockTime, setClockTime] = useState('');
   const [customDelayInput, setCustomDelayInput] = useState('');
   const [isCustomDelay, setIsCustomDelay] = useState(false);
 
   const [ambientSound, setAmbientSound] = useState(initialConfig?.ambientSound || 'office');
-  const [selectedVoiceId, setSelectedVoiceId] = useState(initialConfig?.voiceId || 'auto');
+  const [selectedVoiceId, setSelectedVoiceId] = useState(initialConfig?.voiceId || defaultCaller.voiceId || 'auto');
   const [previewLoading, setPreviewLoading] = useState(false);
   const [voiceVolume, setVoiceVolume] = useState(initialConfig?.voiceVolume ?? 1.0);
   const [ambientVolume, setAmbientVolume] = useState(initialConfig?.ambientVolume ?? 0.25);
   const [callAppearance, setCallAppearance] = useState(
-    initialConfig?.callAppearance || 'android'
+    initialConfig?.callAppearance || defaultCaller.preferredUi || 'android'
   );
+
+  // Modal State for Adding/Editing Caller Profiles
+  const [callerModalVisible, setCallerModalVisible] = useState(false);
+  const [editingCaller, setEditingCaller] = useState(null);
 
   const appearanceOptions = [
     { id: 'android', label: 'Android', icon: '🤖' },
@@ -81,15 +91,81 @@ export default function SmartCallSetupScreen({
   ];
 
   const handleSelectCaller = (c) => {
-    setSelectedCallerId(c.id);
-    setCallerName(c.name);
-    setCallerPhone(c.phoneNumber);
-    setCallerRole(c.role);
+    if (!c) return;
+    setSelectedCallerId(c.id || 'custom');
+    setCallerName(c.name || '');
+    setCallerPhone(c.phoneNumber || '');
+    setCallerRole(c.role || '');
     setAvatarUrl(c.avatarUrl || '');
+    if (c.voiceId) setSelectedVoiceId(c.voiceId);
+    if (c.preferredUi) setCallAppearance(c.preferredUi);
 
-    // If dialogue was auto-generated or default, update dialogue to match the selected caller persona
-    if (!initialConfig?.dialogue || initialConfig?.dialogue?.length === 0) {
+    if (c.greeting) {
+      setDialogue([c.greeting]);
+    } else if (!initialConfig?.dialogue || initialConfig?.dialogue?.length === 0) {
       setDialogue(getDynamicRoleDialogue(c, title, c.role));
+    }
+  };
+
+  const handleOpenAddCaller = () => {
+    setEditingCaller(null);
+    setCallerModalVisible(true);
+  };
+
+  const handleOpenEditCaller = () => {
+    const activeCaller = callers.find((c) => c.id === selectedCallerId) || {
+      id: selectedCallerId !== 'custom' ? selectedCallerId : undefined,
+      name: callerName,
+      phoneNumber: callerPhone,
+      role: callerRole,
+      avatarUrl: avatarUrl,
+      voiceId: selectedVoiceId,
+      preferredUi: callAppearance,
+    };
+    setEditingCaller(activeCaller);
+    setCallerModalVisible(true);
+  };
+
+  const handleSaveCallerModal = async (callerData) => {
+    try {
+      if (onSaveCaller) {
+        await onSaveCaller(callerData);
+      }
+      handleSelectCaller(callerData);
+      setCallerModalVisible(false);
+      Alert.alert('Thành công', 'Đã lưu hồ sơ người gọi.');
+    } catch (err) {
+      Alert.alert('Lỗi', err.message);
+    }
+  };
+
+  const handleDeleteCallerModal = async (callerId) => {
+    try {
+      if (onDeleteCaller) {
+        await onDeleteCaller(callerId);
+      }
+      setCallerModalVisible(false);
+      const remaining = callers.filter((c) => c.id !== callerId);
+      if (remaining.length > 0) {
+        handleSelectCaller(remaining[0]);
+      } else {
+        setSelectedCallerId('custom');
+      }
+      Alert.alert('Đã xóa', 'Hồ sơ người gọi đã được xóa.');
+    } catch (err) {
+      Alert.alert('Lỗi', err.message);
+    }
+  };
+
+  const handleDuplicateCallerModal = async (callerId) => {
+    try {
+      if (onDuplicateCaller) {
+        await onDuplicateCaller(callerId);
+      }
+      setCallerModalVisible(false);
+      Alert.alert('Đã nhân bản', 'Đã tạo bản sao hồ sơ người gọi thành công.');
+    } catch (err) {
+      Alert.alert('Lỗi', err.message);
     }
   };
 
@@ -127,16 +203,24 @@ export default function SmartCallSetupScreen({
         effectiveDelay = delay(Math.ceil((target.getTime()-Date.now())/1000));
       }
       phone(callerPhone); text(callerName, 'Tên người gọi', 1, 80); text(title, 'Tiêu đề', 1, 120); validateDialogue(dialogue);
-      if (avatarUrl && !/^https:\/\//.test(avatarUrl)) throw new Error('Ảnh đại diện phải dùng URL HTTPS.');
+      if (avatarUrl && !/^(https?:\/\/|data:image\/|file:\/\/|content:\/\/|blob:)/i.test(avatarUrl)) {
+        throw new Error('Ảnh đại diện không đúng định dạng hợp lệ.');
+      }
     } catch (err) { Alert.alert('Dữ liệu chưa hợp lệ', err.message); return null; }
+
+    const activeCaller = callers.find((c) => c.id === selectedCallerId);
 
     return {
       ...(initialConfig || {}),
       caller: {
+        id: selectedCallerId !== 'custom' ? selectedCallerId : undefined,
         name: callerName.trim(),
         avatarUrl,
         phoneNumber: callerPhone.trim(),
         role: callerRole.trim() || 'Người gọi',
+        gender: activeCaller?.gender || (selectedVoiceId === 'kore' || selectedVoiceId === 'aoede' ? 'female' : 'male'),
+        voiceId: selectedVoiceId || activeCaller?.voiceId || 'auto',
+        persona: activeCaller?.persona,
       },
       delaySeconds: effectiveDelay,
       ambientSound,
@@ -156,8 +240,14 @@ export default function SmartCallSetupScreen({
     setPreviewLoading(true);
 
     try {
+      const activeCaller = callers.find((c) => c.id === selectedCallerId);
       const voiceProfile = getGeminiVoiceForCaller(
-        { name: callerName, role: callerRole },
+        {
+          name: callerName,
+          role: callerRole,
+          gender: activeCaller?.gender,
+          voiceId: selectedVoiceId,
+        },
         title,
         callerRole,
         selectedVoiceId
@@ -172,6 +262,7 @@ export default function SmartCallSetupScreen({
         const res = await generateTtsAudio({
           text: sampleText,
           voiceName: targetVoice,
+          gender: activeCaller?.gender || (selectedVoiceId === 'kore' || selectedVoiceId === 'aoede' ? 'female' : 'male'),
           callerRole: callerRole || 'Người quen',
           callerName: callerName || 'Người gọi',
           isPreview: true,
@@ -222,6 +313,8 @@ export default function SmartCallSetupScreen({
     } catch (err) { Alert.alert('Không thể lưu', err.message); }
   };
 
+  const activeCaller = callers.find((c) => c.id === selectedCallerId);
+
   return (
     <View style={styles.safeArea}>
       <Header
@@ -259,23 +352,16 @@ export default function SmartCallSetupScreen({
                 placeholderTextColor={colors.textMuted}
               />
             </View>
-            <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>Ảnh đại diện (URL HTTPS, tùy chọn):</Text>
-              <TextInput
-                style={styles.input}
-                value={avatarUrl}
-                onChangeText={setAvatarUrl}
-                autoCapitalize="none"
-                maxLength={1000}
-                placeholder="https://..."
-                placeholderTextColor={colors.textMuted}
-              />
-            </View>
           </View>
         </View>
         {/* Caller Profile Selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>1. CHỌN HOẶC TẠO NGƯỜI GỌI (CALLER)</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>1. CHỌN HOẶC TẠO NGƯỜI GỌI (CALLER)</Text>
+            <TouchableOpacity onPress={handleOpenAddCaller} activeOpacity={0.7}>
+              <Text style={styles.sectionHeaderLink}>＋ Tạo mới</Text>
+            </TouchableOpacity>
+          </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.callersScroll}>
             {callers.map((c) => {
@@ -285,24 +371,116 @@ export default function SmartCallSetupScreen({
                   key={c.id}
                   style={[styles.callerChip, isSelected && styles.callerChipSelected]}
                   onPress={() => handleSelectCaller(c)}
+                  activeOpacity={0.75}
                 >
                   <View style={[styles.chipAvatar, { backgroundColor: c.avatarBg || colors.primary }]}>
-                    <Text style={styles.chipAvatarText}>
-                      {c.initials || c.name.substring(0, 2).toUpperCase()}
-                    </Text>
+                    {c.avatarUrl ? (
+                      <Image source={{ uri: c.avatarUrl }} style={styles.chipAvatarImg} />
+                    ) : (
+                      <Text style={styles.chipAvatarText}>
+                        {c.initials || c.name.substring(0, 2).toUpperCase()}
+                      </Text>
+                    )}
                   </View>
                   <Text style={[styles.chipName, isSelected && styles.chipNameSelected]} numberOfLines={1}>
                     {c.name}
                   </Text>
+                  {c.isDefault && <Text style={styles.chipStarIcon}>⭐</Text>}
                 </TouchableOpacity>
               );
             })}
+            <TouchableOpacity
+              style={styles.callerAddChip}
+              onPress={handleOpenAddCaller}
+              activeOpacity={0.75}
+            >
+              <Text style={styles.callerAddChipIcon}>＋</Text>
+              <Text style={styles.callerAddChipText}>Tạo mới</Text>
+            </TouchableOpacity>
           </ScrollView>
 
-          {/* Caller Details Input */}
+          {/* Selected Caller Profile Card */}
+          <View style={styles.selectedCallerCard}>
+            <View style={styles.selectedCallerTop}>
+              <View style={[styles.selectedAvatarBox, { backgroundColor: activeCaller?.avatarBg || colors.primary }]}>
+                {avatarUrl ? (
+                  <Image source={{ uri: avatarUrl }} style={styles.selectedAvatarImage} />
+                ) : (
+                  <Text style={styles.selectedAvatarInitials}>
+                    {activeCaller?.initials || callerName.substring(0, 2).toUpperCase() || 'AL'}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.selectedCallerMeta}>
+                <View style={styles.selectedCallerNameRow}>
+                  <Text style={styles.selectedCallerName} numberOfLines={1}>
+                    {callerName || 'Người gọi'}
+                  </Text>
+                  {activeCaller?.isDefault && (
+                    <View style={styles.selectedDefaultBadge}>
+                      <Text style={styles.selectedDefaultBadgeText}>Mặc định</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.selectedCallerPhone}>{callerPhone || 'Chưa có số'}</Text>
+                <Text style={styles.selectedCallerRole}>{callerRole || 'Vai trò người gọi'}</Text>
+              </View>
+            </View>
+
+            {/* Badges: Voice & Gender & Persona */}
+            <View style={styles.callerBadgesRow}>
+              <View style={styles.callerBadge}>
+                <Text style={styles.callerBadgeText}>
+                  {activeCaller?.gender === 'female' ? '♀ Nữ' : activeCaller?.gender === 'male' ? '♂ Nam' : 'Giới tính: Tự động'}
+                </Text>
+              </View>
+              <View style={[styles.callerBadge, styles.callerVoiceBadge]}>
+                <Text style={styles.callerVoiceBadgeText}>
+                  🎙️ {GEMINI_VOICE_PROFILES.find(v => v.id === selectedVoiceId)?.label || 'Giọng tự động'}
+                </Text>
+              </View>
+              {activeCaller?.persona ? (
+                <View style={[styles.callerBadge, styles.callerPersonaBadge]}>
+                  <Text style={styles.callerPersonaBadgeText}>
+                    🎭 {activeCaller.persona}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Quick Actions for Caller */}
+            <View style={styles.callerActionsRow}>
+              <TouchableOpacity
+                style={styles.callerActionBtn}
+                onPress={handleOpenEditCaller}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.callerActionBtnText}>✏️ Sửa hồ sơ</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.callerActionBtn, styles.callerPreviewActionBtn]}
+                onPress={handlePreviewVoice}
+                disabled={previewLoading}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.callerPreviewActionBtnText}>
+                  {previewLoading ? '⏳ Đang phát...' : '🔊 Thử giọng'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.callerActionBtn}
+                onPress={handleOpenAddCaller}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.callerActionBtnText}>➕ Thêm mới</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Caller Details Quick Adjustment Input */}
           <View style={styles.formBox}>
             <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>Tên người gọi:</Text>
+              <Text style={styles.fieldLabel}>Tên người gọi hiển thị:</Text>
               <TextInput
                 style={styles.input}
                 value={callerName}
@@ -554,6 +732,16 @@ export default function SmartCallSetupScreen({
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Caller Profile Modal for Editing / Creating */}
+      <CallerProfileModal
+        visible={callerModalVisible}
+        caller={editingCaller}
+        onSave={handleSaveCallerModal}
+        onDelete={handleDeleteCallerModal}
+        onDuplicate={handleDuplicateCallerModal}
+        onClose={() => setCallerModalVisible(false)}
+      />
     </View>
   );
 }
@@ -579,6 +767,178 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeights.bold,
     letterSpacing: 0.8,
     marginBottom: spacing.sm,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  sectionHeaderLink: {
+    color: colors.primary,
+    fontSize: typography.fontSizes.xs,
+    fontWeight: typography.fontWeights.semiBold,
+  },
+  callerAddChip: {
+    backgroundColor: colors.bgCard,
+    borderRadius: borderRadius.pill,
+    paddingVertical: 6,
+    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderStyle: 'dashed',
+  },
+  callerAddChipIcon: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: 'bold',
+    marginRight: 4,
+  },
+  callerAddChipText: {
+    color: colors.primary,
+    fontSize: typography.fontSizes.xs,
+    fontWeight: typography.fontWeights.semiBold,
+  },
+  chipAvatarImg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 13,
+  },
+  chipStarIcon: {
+    fontSize: 10,
+    marginLeft: 4,
+  },
+  selectedCallerCard: {
+    backgroundColor: colors.bgCard,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.primary + '40',
+    marginBottom: spacing.md,
+  },
+  selectedCallerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  selectedAvatarBox: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginRight: spacing.md,
+  },
+  selectedAvatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+  selectedAvatarInitials: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  selectedCallerMeta: {
+    flex: 1,
+  },
+  selectedCallerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  selectedCallerName: {
+    color: colors.textPrimary,
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.bold,
+    flexShrink: 1,
+    marginRight: spacing.xs,
+  },
+  selectedDefaultBadge: {
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+  },
+  selectedDefaultBadgeText: {
+    color: colors.primary,
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  selectedCallerPhone: {
+    color: colors.textSecondary,
+    fontSize: typography.fontSizes.xs,
+    marginTop: 2,
+  },
+  selectedCallerRole: {
+    color: colors.textMuted,
+    fontSize: typography.fontSizes.xs - 1,
+    marginTop: 1,
+  },
+  callerBadgesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: spacing.sm,
+  },
+  callerBadge: {
+    backgroundColor: colors.bgCardElevated,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.bgCardBorder,
+  },
+  callerBadgeText: {
+    color: colors.textSecondary,
+    fontSize: 11,
+  },
+  callerVoiceBadge: {
+    borderColor: colors.primary + '50',
+    backgroundColor: colors.primary + '10',
+  },
+  callerVoiceBadgeText: {
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  callerPersonaBadge: {
+    borderColor: '#8B5CF640',
+    backgroundColor: '#8B5CF615',
+  },
+  callerPersonaBadgeText: {
+    color: '#8B5CF6',
+    fontSize: 11,
+  },
+  callerActionsRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  callerActionBtn: {
+    flex: 1,
+    backgroundColor: colors.bgCardElevated,
+    paddingVertical: 7,
+    borderRadius: borderRadius.sm,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.bgCardBorder,
+  },
+  callerActionBtnText: {
+    color: colors.textSecondary,
+    fontSize: typography.fontSizes.xs - 1,
+    fontWeight: typography.fontWeights.semiBold,
+  },
+  callerPreviewActionBtn: {
+    borderColor: colors.primary + '40',
+    backgroundColor: colors.primary + '15',
+  },
+  callerPreviewActionBtnText: {
+    color: colors.primary,
+    fontSize: typography.fontSizes.xs - 1,
+    fontWeight: typography.fontWeights.bold,
   },
   advancedToggleBar: {
     backgroundColor: colors.bgCard,

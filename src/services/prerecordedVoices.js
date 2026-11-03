@@ -81,48 +81,78 @@ export const PRERECORDED_CLIPS = {
 export const PRERECORDED_SAMPLES = {
   mother: {
     source: require('../../assets/audio/voices/sample_mother.wav'),
-    voice: 'Kore (Mẹ - Ấm áp)',
+    voice: 'Kore (Nữ - Ấm áp)',
     text: 'Alo, tôi đang gọi cho bạn đây, có việc gấp cần trao đổi ngay!',
   },
   father: {
     source: require('../../assets/audio/voices/sample_father.wav'),
-    voice: 'Charon (Bố - Điềm đạm)',
+    voice: 'Charon (Nam - Trầm ấm)',
     text: 'Alo, tôi đang gọi cho bạn đây, có việc gấp cần trao đổi ngay!',
   },
   boss: {
     source: require('../../assets/audio/voices/sample_boss.wav'),
-    voice: 'Fenrir (Sếp - Quyết đoán)',
+    voice: 'Fenrir (Nam - Quyết đoán)',
     text: 'Alo, tôi đang gọi cho bạn đây, có việc gấp cần trao đổi ngay!',
   },
   friend: {
     source: require('../../assets/audio/voices/sample_friend.wav'),
-    voice: 'Puck (Bạn bè - Trẻ trung)',
+    voice: 'Puck (Nam - Trẻ trung)',
     text: 'Alo, tôi đang gọi cho bạn đây, có việc gấp cần trao đổi ngay!',
   },
   shipper: {
     source: require('../../assets/audio/voices/sample_shipper.wav'),
-    voice: 'Aoede (Shipper - Năng động)',
+    voice: 'Aoede (Nữ - Năng động)',
     text: 'Alo, tôi đang gọi cho bạn đây, có việc gấp cần trao đổi ngay!',
   },
 };
 
 /**
- * Match a caller / persona key to the role bucket
+ * Match a caller / persona key to the role bucket for audio assets
  */
 export function resolveRoleKey(personaKey = '', caller = {}) {
+  // 1. Explicit voiceId saved in caller profile takes precedence
+  const v = (caller?.voiceId || '').toLowerCase();
+  if (v === 'kore') return 'mother';
+  if (v === 'aoede') return 'shipper'; // Aoede female audio
+  if (v === 'charon') return 'father'; // Charon male audio
+  if (v === 'fenrir') return 'boss';   // Fenrir male audio
+  if (v === 'puck') return 'friend';   // Puck male audio
+
+  // 2. Explicit female gender NEVER returns male audio assets
+  if (caller?.gender === 'female') {
+    if (String(personaKey).toUpperCase() === 'FAMILY_MOM') return 'mother';
+    return 'shipper'; // Aoede female voice
+  }
+
+  // 3. Explicit male gender
+  if (caller?.gender === 'male') {
+    if (String(personaKey).toUpperCase() === 'BOSS') return 'boss';
+    if (String(personaKey).toUpperCase() === 'FRIEND') return 'friend';
+    return 'father';
+  }
+
+  // 4. Persona-driven mapping
   const p = String(personaKey).toUpperCase();
   if (p === 'FAMILY_MOM') return 'mother';
   if (p === 'FAMILY_DAD') return 'father';
+  if (p === 'NEIGHBOR') return 'father'; // Charon older male voice
   if (p === 'BOSS') return 'boss';
-  if (p === 'FRIEND') return 'friend';
   if (p === 'SHIPPER') return 'shipper';
+  if (p === 'FRIEND') {
+    const name = (caller?.name || '').toLowerCase();
+    if (/(linh|hoa|mai|nhung|trang|hương|nữ|gái)/i.test(name)) {
+      return 'shipper'; // Female voice for female friend Linh
+    }
+    return 'friend';
+  }
 
   const textToScan = `${caller?.role || ''} ${caller?.name || ''}`.toLowerCase();
-  if (/(mẹ|má|u|bà|chị|em gái)/i.test(textToScan)) return 'mother';
-  if (/(bố|ba|cha|chú|bác|ông)/i.test(textToScan)) return 'father';
+  if (/(mẹ|má|u|bà|chị|em gái|nữ)/i.test(textToScan)) return 'mother';
+  if (/(bố|ba|cha|chú|bác|ông|nam)/i.test(textToScan)) return 'father';
   if (/(sếp|giám đốc|trưởng phòng|công ty|đối tác)/i.test(textToScan)) return 'boss';
-  if (/(bạn|thằng|đồng nghiệp|cạ cứng)/i.test(textToScan)) return 'friend';
   if (/(ship|giao hàng|bưu tá)/i.test(textToScan)) return 'shipper';
+  if (/(linh|hoa|mai|nhung)/i.test(textToScan)) return 'shipper';
+  if (/(bạn|thằng|đồng nghiệp|cạ cứng)/i.test(textToScan)) return 'friend';
 
   return 'mother';
 }
